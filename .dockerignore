@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+README.md
+STATUS.md
+docs
+tests
+*.log
+.DS_Store
+.vscode
+.idea
+deploy/RAILWAY.md

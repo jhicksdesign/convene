@@ -1,65 +1,70 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { getCurrentUser } from "@/lib/auth-helpers";
+import { db } from "@/lib/db";
+import { recommendFor } from "@/lib/recommendations";
+import { format } from "date-fns";
 
-export default function Home() {
+export default async function HomePage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return (
+      <section className="mx-auto max-w-2xl py-12 text-center">
+        <h1 className="text-3xl font-semibold tracking-tight">Convene</h1>
+        <p className="mt-3 text-muted-foreground">
+          The calendar where overlapping communities see what each other is doing,
+          so nobody has to schedule a meeting just to schedule a meet.
+        </p>
+        <div className="mt-6 flex justify-center gap-2">
+          <Link href="/login"><Button>Sign in</Button></Link>
+          <Link href="/groups"><Button variant="outline">Browse groups</Button></Link>
+        </div>
+      </section>
+    );
+  }
+
+  const recommendations = await recommendFor(user.id, 5);
+  const events = await db.event.findMany({
+    where: { id: { in: recommendations.map((r) => r.eventId) } },
+    include: { owningGroup: { select: { name: true, color: true } } },
+  });
+  const byId = new Map(events.map((e) => [e.id, e]));
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <section className="space-y-6">
+      <h1 className="text-2xl font-semibold tracking-tight">For you</h1>
+      {recommendations.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No recommendations yet. Join a few groups or RSVP to events to start seeing what's relevant.
+        </p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {recommendations.map((r) => {
+            const e = byId.get(r.eventId);
+            if (!e) return null;
+            return (
+              <Link key={r.eventId} href={`/e/${e.id}`}>
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: e.owningGroup.color }} />
+                      <CardTitle className="text-base">{e.title}</CardTitle>
+                    </div>
+                    <CardDescription>
+                      {format(e.startsAt, "EEE MMM d, p")} · {e.owningGroup.name}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-xs text-muted-foreground">
+                    {r.reasons.join(" · ")}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      )}
+    </section>
   );
 }

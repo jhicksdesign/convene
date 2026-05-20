@@ -1,0 +1,635 @@
+// Convene — Prisma schema
+// PRD §5. Treat this file as the canonical data model.
+// Mutations must go through server actions in app/_actions/*.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User & identity ────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  displayName   String
+  avatarUrl     String?
+  pronouns      String?
+  bio           String?
+  timezone      String    @default("America/Denver")
+
+  homeLat Float?
+  homeLng Float?
+
+  profileVisibility    Visibility @default(MEMBERS)
+  attendanceVisibility Visibility @default(MEMBERS)
+  rsvpVisibility       Visibility @default(GROUP)
+  searchable           Boolean    @default(false)
+  showOnAttendeeLists  Boolean    @default(true)
+
+  digestOptIn       Boolean @default(true)
+  notificationPrefs Json    @default("{}")
+  iCalToken         String? @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  memberships        Membership[]
+  rsvps              RSVP[]
+  vouchesGiven       Vouch[]           @relation("voucher")
+  vouchesReceived    Vouch[]           @relation("vouchee")
+  blocksGiven        Block[]           @relation("blocker")
+  blocksReceived     Block[]           @relation("blocked")
+  friendshipsA       Friendship[]      @relation("userA")
+  friendshipsB       Friendship[]      @relation("userB")
+  adminNotesAuthored AdminNote[]       @relation("noteAuthor")
+  adminNotesAbout    AdminNote[]       @relation("noteSubject")
+  reportsFiled       IncidentReport[]  @relation("reporter")
+  reportsAbout       IncidentReport[]  @relation("reportSubject")
+  sessions           Session[]
+  accounts           Account[]
+  notifications      Notification[]
+  carpoolOffers      CarpoolOffer[]
+  carpoolRequests    CarpoolRequest[]
+  appeals            Appeal[]
+  auditEntries       ReportAuditLogEntry[]
+  rateLimits         LLMRateLimit[]
+  inviteList         EventInvite[]
+  pushSubscriptions  PushSubscription[]
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum Visibility {
+  PUBLIC
+  MEMBERS
+  GROUP
+  FRIENDS
+  PRIVATE
+}
+
+// ─── Groups ─────────────────────────────────────────────────────────
+
+model Group {
+  id                 String          @id @default(cuid())
+  name               String
+  slug               String          @unique
+  color              String
+  description        String?
+  logoUrl            String?
+  visibility         GroupVisibility @default(MEMBERS_VISIBLE)
+  joinMode           JoinMode        @default(REQUEST)
+  vouchRequirement   Int             @default(0)
+  safetyNetworkOptIn Boolean         @default(false)
+  signalsOptIn       Boolean         @default(false)
+  tentativeExpiryDays Int            @default(14)
+  createdAt          DateTime        @default(now())
+
+  memberships    Membership[]
+  events         Event[]
+  coHostedEvents EventCoHost[]
+  softClaims     SoftClaim[]
+  adminNotes     AdminNote[]
+  vouches        Vouch[]
+  joinRequests   JoinRequest[]
+  invites        Invite[]
+  safetyEdgesA   SafetyNetworkEdge[] @relation("safetyA")
+  safetyEdgesB   SafetyNetworkEdge[] @relation("safetyB")
+  overlapStatsA  AttendanceOverlap[] @relation("overlapA")
+  overlapStatsB  AttendanceOverlap[] @relation("overlapB")
+}
+
+enum GroupVisibility {
+  PUBLIC_LISTED
+  MEMBERS_VISIBLE
+  INVITE_ONLY
+}
+
+enum JoinMode {
+  OPEN
+  REQUEST
+  INVITE_ONLY
+}
+
+model Membership {
+  id       String   @id @default(cuid())
+  userId   String
+  groupId  String
+  role     Role     @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@index([groupId])
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+model JoinRequest {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  message   String?
+  status    String   @default("PENDING") // PENDING | APPROVED | DECLINED
+  createdAt DateTime @default(now())
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+model Invite {
+  id        String   @id @default(cuid())
+  groupId   String
+  email     String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  acceptedAt DateTime?
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+model SafetyNetworkEdge {
+  id        String   @id @default(cuid())
+  groupAId  String
+  groupBId  String
+  // edge is mutual only when both sides are confirmed
+  confirmedByA Boolean @default(false)
+  confirmedByB Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  groupA Group @relation("safetyA", fields: [groupAId], references: [id], onDelete: Cascade)
+  groupB Group @relation("safetyB", fields: [groupBId], references: [id], onDelete: Cascade)
+
+  @@unique([groupAId, groupBId])
+}
+
+// ─── Events ─────────────────────────────────────────────────────────
+
+model Event {
+  id                 String      @id @default(cuid())
+  owningGroupId      String
+  title              String
+  description        String?
+  startsAt           DateTime
+  endsAt             DateTime
+  locationId         String?
+  capacity           Int?
+  cost               String?
+  scope              EventScope  @default(MEMBERS)
+  status             EventStatus @default(CONFIRMED)
+  flyerImageUrl      String?
+  tags               String[]
+  accessibilityFlags String[]
+
+  allowPlusOnes Boolean @default(false)
+
+  rrule                String?
+  recurrenceParentId   String?
+  recurrenceExceptions DateTime[]
+
+  extractedFromText String?
+  extractionPending Boolean @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  cancelledAt DateTime?
+
+  owningGroup Group         @relation(fields: [owningGroupId], references: [id], onDelete: Cascade)
+  location    Location?     @relation(fields: [locationId], references: [id])
+  coHosts     EventCoHost[]
+  rsvps       RSVP[]
+  reports     IncidentReport[]
+  carpoolOffers   CarpoolOffer[]
+  carpoolRequests CarpoolRequest[]
+  invites     EventInvite[]
+
+  @@index([owningGroupId])
+  @@index([startsAt])
+}
+
+enum EventScope {
+  PUBLIC
+  MEMBERS
+  VOUCHED
+  INVITE
+}
+
+enum EventStatus {
+  TENTATIVE
+  CONFIRMED
+  CANCELLED
+}
+
+model EventCoHost {
+  eventId String
+  groupId String
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, groupId])
+}
+
+model EventInvite {
+  eventId String
+  userId  String
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+}
+
+model SoftClaim {
+  id        String   @id @default(cuid())
+  groupId   String
+  date      DateTime
+  note      String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  convertedToEventId String?
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([date])
+}
+
+// ─── RSVPs ──────────────────────────────────────────────────────────
+
+model RSVP {
+  id                      String     @id @default(cuid())
+  userId                  String
+  eventId                 String
+  status                  RSVPStatus
+  conditionalMinAttendees Int?
+  conditionalOnUserId     String?
+  plusOneCount            Int        @default(0)
+  waitlistPosition        Int?
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+}
+
+enum RSVPStatus {
+  GOING
+  INTERESTED
+  MAYBE
+  NOT_GOING
+  CONDITIONAL
+  WAITLIST
+}
+
+// ─── Trust & safety ─────────────────────────────────────────────────
+
+model Vouch {
+  id        String    @id @default(cuid())
+  voucherId String
+  voucheeId String
+  groupId   String
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  voucher User  @relation("voucher", fields: [voucherId], references: [id], onDelete: Cascade)
+  vouchee User  @relation("vouchee", fields: [voucheeId], references: [id], onDelete: Cascade)
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([voucherId, voucheeId, groupId])
+  @@index([voucheeId, groupId])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model Friendship {
+  id          String           @id @default(cuid())
+  userAId     String
+  userBId     String
+  status      FriendshipStatus @default(PENDING)
+  initiatorId String
+  createdAt   DateTime         @default(now())
+  acceptedAt  DateTime?
+
+  userA User @relation("userA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("userB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model AdminNote {
+  id                     String   @id @default(cuid())
+  authorAdminId          String
+  subjectUserId          String
+  groupId                String
+  body                   String
+  shareWithSafetyNetwork Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  author  User  @relation("noteAuthor", fields: [authorAdminId], references: [id], onDelete: Cascade)
+  subject User  @relation("noteSubject", fields: [subjectUserId], references: [id], onDelete: Cascade)
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([subjectUserId, groupId])
+}
+
+model IncidentReport {
+  id                     String       @id @default(cuid())
+  reporterId             String
+  subjectId              String?
+  eventId                String?
+  body                   String
+  evidenceUrls           String[]
+  confidential           Boolean      @default(false)
+  shareWithSafetyNetwork Boolean      @default(false)
+  status                 ReportStatus @default(SUBMITTED)
+  resolutionNote         String?
+  subjectNotifyDueAt     DateTime?   // when the 48h delay elapses
+  subjectNotifiedAt      DateTime?   // when we actually dispatched to the subject
+  createdAt              DateTime     @default(now())
+  acknowledgedAt         DateTime?
+  resolvedAt             DateTime?
+
+  reporter User   @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  subject  User?  @relation("reportSubject", fields: [subjectId], references: [id])
+  event    Event? @relation(fields: [eventId], references: [id])
+
+  auditLog ReportAuditLogEntry[]
+  appeals  Appeal[]
+}
+
+enum ReportStatus {
+  SUBMITTED
+  ACKNOWLEDGED
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+model ReportAuditLogEntry {
+  id          String   @id @default(cuid())
+  reportId    String
+  actorUserId String
+  action      String
+  details     Json
+  createdAt   DateTime @default(now())
+
+  report IncidentReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  actor  User           @relation(fields: [actorUserId], references: [id])
+
+  @@index([reportId])
+}
+
+model Appeal {
+  id              String   @id @default(cuid())
+  reportId        String?
+  affectedUserId  String
+  originalAction  String
+  userStatement   String
+  adminResponse   String?
+  resolvedAt      DateTime?
+  createdAt       DateTime @default(now())
+
+  user   User            @relation(fields: [affectedUserId], references: [id], onDelete: Cascade)
+  report IncidentReport? @relation(fields: [reportId], references: [id])
+}
+
+// ─── Locations ──────────────────────────────────────────────────────
+
+model Location {
+  id         String   @id @default(cuid())
+  address    String   @unique
+  lat        Float
+  lng        Float
+  venueName  String?
+  venueNotes String?
+  createdAt  DateTime @default(now())
+
+  events Event[]
+}
+
+// ─── Carpool (§12.3) ────────────────────────────────────────────────
+
+model CarpoolOffer {
+  id            String   @id @default(cuid())
+  eventId       String
+  userId        String
+  pickupArea    String
+  seatsAvailable Int
+  departureTime DateTime
+  createdAt     DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+model CarpoolRequest {
+  id                     String   @id @default(cuid())
+  eventId                String
+  userId                 String
+  pickupArea             String
+  preferredDepartureTime DateTime
+  matchedOfferId         String?
+  createdAt              DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+// ─── Convention calendar seed (§6.7) ────────────────────────────────
+
+model Convention {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  location  String
+  url       String?
+  createdAt DateTime @default(now())
+
+  @@index([startDate])
+}
+
+// ─── Notifications (§14) ────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  category  NotificationCategory
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  emailedAt DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+enum NotificationCategory {
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  VOUCH_RECEIVED
+  EVENT_UPDATED
+  EVENT_CANCELLED
+  WAITLIST_PROMOTED
+  CONDITIONAL_TRIGGERED
+  ADMIN_ACTION
+  REPORT_STATUS
+  WEEKLY_DIGEST
+  JOIN_REQUEST
+  REPORT_FILED
+}
+
+// ─── Attendance overlap (§9.4) ──────────────────────────────────────
+
+model AttendanceOverlap {
+  id           String   @id @default(cuid())
+  groupAId     String
+  groupBId     String
+  overlapPct   Float    // 0..1 — share of A's regulars who also go to B
+  windowDays   Int      @default(90)
+  computedAt   DateTime @default(now())
+
+  groupA Group @relation("overlapA", fields: [groupAId], references: [id], onDelete: Cascade)
+  groupB Group @relation("overlapB", fields: [groupBId], references: [id], onDelete: Cascade)
+
+  @@unique([groupAId, groupBId])
+}
+
+// ─── LLM rate limit (§10.4) ─────────────────────────────────────────
+
+model LLMRateLimit {
+  id        String   @id @default(cuid())
+  userId    String
+  day       DateTime // truncated to date
+  count     Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+}
+
+// ─── Generic rate-limit buckets (anti-spam) ─────────────────────────
+// Sliding-window counter: rows are bucketed per (key, windowStart) and
+// pruned by the consume() helper when they expire.
+
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  key         String   // free-form: "rsvp:<userId>:<eventId>" / "magic:<email>"
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@unique([key, windowStart])
+  @@index([key])
+  @@index([windowStart])
+}
+
+// ─── Real-time change ticks ─────────────────────────────────────────
+// Bumped on every mutation. Clients poll /api/realtime/ticks?channels=...
+// and call router.refresh() when their last-seen tick advances.
+
+model ChangeTick {
+  channel   String   @id
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Mapbox cache (§12.2) ───────────────────────────────────────────
+
+model DirectionsCache {
+  id        String   @id @default(cuid())
+  fromLat   Float
+  fromLng   Float
+  toLat     Float
+  toLng     Float
+  durationS Int
+  distanceM Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([fromLat, fromLng, toLat, toLng])
+}
+
+// ─── Auth.js v5 (Prisma adapter) ────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
