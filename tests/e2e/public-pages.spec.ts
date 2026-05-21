@@ -4,13 +4,14 @@ test.describe("Public routes", () => {
   test("home renders the marketing pitch for logged-out users", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Convene" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /sign in/i })).toBeVisible();
+    // There are intentionally two Sign in entry points on the logged-out home
+    // (top-bar + hero CTA). Scope to the hero so the test is unambiguous.
+    await expect(page.getByRole("main").getByRole("link", { name: /sign in/i })).toBeVisible();
   });
 
   test("login page accepts email submission", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Email").fill("test@example.com");
-    // We don't actually submit (no SMTP in CI), just verify the form renders.
     await expect(page.getByRole("button", { name: /send magic link/i })).toBeEnabled();
   });
 
