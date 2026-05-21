@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c 'echo \"[1/4] before migrate\"; prisma migrate deploy; echo \"[2/4] migrate exit=$?\"; echo \"[3/4] env\"; env | grep -E \"^(PORT|HOSTNAME|NODE_ENV)=\" || echo \"(no relevant env vars set)\"; echo \"[4/4] starting node server.js\"; exec node server.js'",
+    "startCommand": "prisma migrate deploy && node server.js",
     "healthcheckPath": "/",
     "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",
