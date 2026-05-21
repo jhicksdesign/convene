@@ -1,55 +1,174 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────
+   Convene — design tokens.
+
+   The palette is intentionally warm and lived-in: cream backgrounds,
+   warm ink text, a burnt-sienna accent. The goal is "community space
+   on a Saturday evening," not "enterprise dashboard." Works for any
+   community, not just the launch audience.
+
+   Group/event colors keep their full saturation — these tokens are
+   the background fabric they're placed against.
+   ───────────────────────────────────────────────────────────────────── */
+
 @theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(240 10% 3.9%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(240 10% 3.9%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(240 10% 3.9%);
-  --color-primary: hsl(240 5.9% 10%);
-  --color-primary-foreground: hsl(0 0% 98%);
-  --color-secondary: hsl(240 4.8% 95.9%);
-  --color-secondary-foreground: hsl(240 5.9% 10%);
-  --color-muted: hsl(240 4.8% 95.9%);
-  --color-muted-foreground: hsl(240 5% 35%);
-  --color-accent: hsl(240 4.8% 95.9%);
-  --color-accent-foreground: hsl(240 5.9% 10%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(0 0% 98%);
-  --color-border: hsl(240 5.9% 90%);
-  --color-input: hsl(240 5.9% 90%);
-  --color-ring: hsl(240 5% 64.9%);
+  /* Surfaces */
+  --color-background:           #F8F1E4;  /* warm cream */
+  --color-foreground:           #1F1810;  /* deep warm ink */
+  --color-card:                 #FDF8EB;  /* just barely lifted */
+  --color-card-foreground:      #1F1810;
+  --color-popover:              #FDF8EB;
+  --color-popover-foreground:   #1F1810;
+
+  /* Brand — the signature color. Used sparingly: primary buttons,
+     active nav, focus rings, key emphasis. */
+  --color-primary:              #C04E22;  /* burnt sienna */
+  --color-primary-foreground:   #FDF8EB;
+
+  /* Secondary surfaces & hovers */
+  --color-secondary:            #F0DDB5;  /* sand */
+  --color-secondary-foreground: #1F1810;
+  --color-muted:                #F0DDB5;
+  --color-muted-foreground:     #6B5A48;  /* warm taupe */
+  --color-accent:               #F0DDB5;
+  --color-accent-foreground:    #1F1810;
+
+  /* Status */
+  --color-destructive:          #9B2C2C;  /* deep brick */
+  --color-destructive-foreground: #FDF8EB;
+
+  /* Borders & inputs */
+  --color-border:               #E3D5B8;
+  --color-input:                #E3D5B8;
+  --color-ring:                 #C04E22;
+
   --radius: 0.5rem;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Typography
+     ─ Fraunces for display (headings, brand). Variable opsz + grade
+       give it warmth at large sizes, discipline at small.
+     ─ Inter for body and UI. The default sans throughout.
+     ─ JetBrains Mono for numeric/time labels in calendar pills.
+     CSS vars below are set by next/font in app/layout.tsx. */
+  --font-sans:    var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-mono:    var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Warm shadows — pure-gray shadows look digital. Warming them with a
+     hint of the ink tone makes lifted surfaces feel sun-lit, not flat. */
+  --shadow-paper: 0 1px 2px rgba(31, 24, 16, 0.05), 0 1px 1px rgba(31, 24, 16, 0.03);
+  --shadow-lift:  0 1px 2px rgba(31, 24, 16, 0.06), 0 8px 24px -8px rgba(192, 78, 34, 0.18);
+  --shadow-glow:  0 0 0 1px rgba(192, 78, 34, 0.20), 0 12px 40px -12px rgba(192, 78, 34, 0.30);
 }
 
 @media (prefers-color-scheme: dark) {
   @theme {
-    --color-background: hsl(240 10% 3.9%);
-    --color-foreground: hsl(0 0% 98%);
-    --color-card: hsl(240 10% 3.9%);
-    --color-card-foreground: hsl(0 0% 98%);
-    --color-popover: hsl(240 10% 3.9%);
-    --color-popover-foreground: hsl(0 0% 98%);
-    --color-primary: hsl(0 0% 98%);
-    --color-primary-foreground: hsl(240 5.9% 10%);
-    --color-secondary: hsl(240 3.7% 15.9%);
-    --color-secondary-foreground: hsl(0 0% 98%);
-    --color-muted: hsl(240 3.7% 15.9%);
-    --color-muted-foreground: hsl(240 5% 64.9%);
-    --color-accent: hsl(240 3.7% 15.9%);
-    --color-accent-foreground: hsl(0 0% 98%);
-    --color-destructive: hsl(0 62.8% 30.6%);
-    --color-destructive-foreground: hsl(0 0% 98%);
-    --color-border: hsl(240 3.7% 15.9%);
-    --color-input: hsl(240 3.7% 15.9%);
-    --color-ring: hsl(240 4.9% 83.9%);
+    /* Deep evening palette — same warmth, different time of day */
+    --color-background:           #14181F;  /* deep evening blue */
+    --color-foreground:           #EFE6D6;  /* warm bone */
+    --color-card:                 #1C2230;  /* lifted slate */
+    --color-card-foreground:      #EFE6D6;
+    --color-popover:              #1C2230;
+    --color-popover-foreground:   #EFE6D6;
+
+    --color-primary:              #E2774C;  /* sienna lifted for dark */
+    --color-primary-foreground:   #14181F;
+
+    --color-secondary:            #2A3142;
+    --color-secondary-foreground: #EFE6D6;
+    --color-muted:                #2A3142;
+    --color-muted-foreground:     #A89C82;
+    --color-accent:               #2A3142;
+    --color-accent-foreground:    #EFE6D6;
+
+    --color-destructive:          #B33B3B;
+    --color-destructive-foreground: #EFE6D6;
+
+    --color-border:               #2A3142;
+    --color-input:                #2A3142;
+    --color-ring:                 #E2774C;
+
+    --shadow-paper: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.2);
+    --shadow-lift:  0 2px 4px rgba(0, 0, 0, 0.4), 0 12px 32px -8px rgba(226, 119, 76, 0.18);
+    --shadow-glow:  0 0 0 1px rgba(226, 119, 76, 0.22), 0 12px 40px -12px rgba(226, 119, 76, 0.35);
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+   Body — warm paper texture overlay.
+
+   The SVG noise is inline (~3% opacity) so the cream background reads
+   as paper, not digital fill. Invisible up close, but in screenshots
+   and at glance the surface feels printed, not rendered. Single biggest
+   "this was designed by a human" cue available for zero implementation
+   complexity.
+   ───────────────────────────────────────────────────────────────────── */
+
 body {
-  background: var(--color-background);
+  background-color: var(--color-background);
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-attachment: fixed;
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";  /* nicer Inter alternates */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Headings — Fraunces, the display font.
+   We set opsz + grade via font-variation-settings so each size pulls
+   the appropriate optical adjustment (gentler curves at small sizes,
+   more contrast at large).
+   ───────────────────────────────────────────────────────────────────── */
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-feature-settings: "ss01";
+  letter-spacing: -0.015em;
+}
+
+h1 { font-variation-settings: "opsz" 144, "SOFT" 30; }
+h2 { font-variation-settings: "opsz" 72,  "SOFT" 40; }
+h3 { font-variation-settings: "opsz" 36,  "SOFT" 50; }
+
+/* Mono for numeric/tabular contexts. Used by calendar time labels. */
+.font-mono {
+  font-feature-settings: "tnum", "zero";
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Calendar — cancelled-event hatching.
+
+   Strikethrough on the title is good signal in the agenda, but on a
+   28px colored pill the strike disappears against the saturated bg.
+   A diagonal hatch overlay survives the color and reads "crossed out"
+   from across the room.
+   ───────────────────────────────────────────────────────────────────── */
+
+.cal-pill-cancelled {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 4px,
+    rgba(0, 0, 0, 0.22) 4px 5px
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Sonner toaster — warm tint + Fraunces titles.
+   Sonner sets its own background var; we override so toasts feel like
+   they belong to the same paper-and-ink world.
+   ───────────────────────────────────────────────────────────────────── */
+
+[data-sonner-toaster] {
+  --normal-bg: var(--color-card);
+  --normal-text: var(--color-foreground);
+  --normal-border: var(--color-border);
+}
+
+[data-sonner-toast] [data-title] {
+  font-family: var(--font-display);
+  font-feature-settings: "ss01";
+  letter-spacing: -0.005em;
 }

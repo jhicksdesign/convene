@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 
 interface Props {
   slug: string;
@@ -11,16 +11,30 @@ interface Props {
 
 export function GroupCard({ slug, name, color, description, memberCount }: Props) {
   return (
-    <Link href={`/g/${slug}`} className="block transition-opacity hover:opacity-90">
-      <Card>
+    <Link href={`/g/${slug}`} className="group block">
+      <Card
+        className="relative h-full overflow-hidden border-l-4 transition-all duration-150 group-hover:-translate-y-px"
+        style={{ borderLeftColor: color }}
+      >
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+          style={{ background: `linear-gradient(110deg, ${color}10, transparent 60%)` }}
+        />
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
-            <CardTitle>{name}</CardTitle>
-          </div>
-          <CardDescription>{memberCount} member{memberCount === 1 ? "" : "s"}</CardDescription>
+          <h3
+            className="font-display text-xl font-medium leading-tight tracking-tight"
+            style={{ fontVariationSettings: '"opsz" 36, "SOFT" 60' }}
+          >
+            {name}
+          </h3>
+          <CardDescription>
+            {memberCount} member{memberCount === 1 ? "" : "s"}
+          </CardDescription>
         </CardHeader>
-        {description && <CardContent className="text-sm text-muted-foreground">{description}</CardContent>}
+        {description && (
+          <CardContent className="text-sm text-muted-foreground">{description}</CardContent>
+        )}
       </Card>
     </Link>
   );

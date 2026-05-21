@@ -26,13 +26,13 @@ export function MobileTabBar() {
             aria-current={active ? "page" : undefined}
             className={cn(
               "relative flex flex-col items-center gap-1 py-2 text-xs transition-colors active:bg-accent/40",
-              active ? "text-foreground" : "text-muted-foreground",
+              active ? "text-primary" : "text-muted-foreground",
             )}
           >
             <Icon className={cn("h-5 w-5", active && "scale-110")} />
             {t.label}
             {active && (
-              <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-foreground" />
+              <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-primary" />
             )}
           </Link>
         );

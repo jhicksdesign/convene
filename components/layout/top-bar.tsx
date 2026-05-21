@@ -23,7 +23,13 @@ export async function TopBar() {
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-6">
-          <Link href="/" className="font-semibold tracking-tight">Convene</Link>
+          <Link
+            href="/"
+            className="font-display text-2xl font-medium leading-none tracking-tight text-foreground"
+            style={{ fontVariationSettings: '"opsz" 36, "SOFT" 60' }}
+          >
+            Convene
+          </Link>
           {user && <TopNavLinks />}
         </div>
         <div className="flex items-center gap-2">

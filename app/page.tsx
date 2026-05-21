@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { EmptyState } from "@/components/common/empty-state";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -13,15 +13,24 @@ export default async function HomePage() {
 
   if (!user) {
     return (
-      <section className="mx-auto max-w-2xl py-12 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Convene</h1>
-        <p className="mt-3 text-muted-foreground">
-          The calendar where overlapping communities see what each other is doing,
+      <section className="relative mx-auto max-w-3xl py-16 text-center sm:py-24">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -left-32 top-0 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
+          <div className="absolute -right-32 bottom-0 h-72 w-72 rounded-full bg-secondary/50 blur-3xl" />
+        </div>
+        <h1
+          className="font-display text-5xl font-medium leading-none tracking-tight sm:text-7xl"
+          style={{ fontVariationSettings: '"opsz" 144, "SOFT" 25' }}
+        >
+          Convene
+        </h1>
+        <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          The calendar where overlapping communities see what each other is doing —
           so nobody has to schedule a meeting just to schedule a meet.
         </p>
-        <div className="mt-6 flex justify-center gap-2">
-          <Link href="/login"><Button>Sign in</Button></Link>
-          <Link href="/groups"><Button variant="outline">Browse groups</Button></Link>
+        <div className="mt-7 flex justify-center gap-2">
+          <Link href="/login"><Button size="lg">Sign in</Button></Link>
+          <Link href="/groups"><Button variant="outline" size="lg">Browse groups</Button></Link>
         </div>
       </section>
     );
@@ -36,7 +45,14 @@ export default async function HomePage() {
 
   return (
     <section className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">For you</h1>
+      <div>
+        <h1 className="font-display text-3xl font-medium leading-none tracking-tight sm:text-4xl">
+          For you
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Picked for you from your groups and what's nearby.
+        </p>
+      </div>
       {recommendations.length === 0 ? (
         <EmptyState
           icon={Sparkles}
@@ -50,15 +66,27 @@ export default async function HomePage() {
             const e = byId.get(r.eventId);
             if (!e) return null;
             return (
-              <Link key={r.eventId} href={`/e/${e.id}`}>
-                <Card>
+              <Link key={r.eventId} href={`/e/${e.id}`} className="group block">
+                <Card
+                  className="relative h-full overflow-hidden border-l-4 transition-all duration-150 group-hover:-translate-y-px"
+                  style={{ borderLeftColor: e.owningGroup.color }}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                    style={{ background: `linear-gradient(110deg, ${e.owningGroup.color}10, transparent 60%)` }}
+                  />
                   <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: e.owningGroup.color }} />
-                      <CardTitle className="text-base">{e.title}</CardTitle>
-                    </div>
-                    <CardDescription>
-                      {format(e.startsAt, "EEE MMM d, p")} · {e.owningGroup.name}
+                    <h3
+                      className="font-display text-lg font-medium leading-tight tracking-tight"
+                      style={{ fontVariationSettings: '"opsz" 36, "SOFT" 60' }}
+                    >
+                      {e.title}
+                    </h3>
+                    <CardDescription className="font-mono text-xs tabular-nums">
+                      {format(e.startsAt, "EEE MMM d")}
+                      <span className="ml-1 text-foreground/70">{format(e.startsAt, "p")}</span>
+                      <span className="ml-2 font-sans text-muted-foreground">· {e.owningGroup.name}</span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="text-xs text-muted-foreground">

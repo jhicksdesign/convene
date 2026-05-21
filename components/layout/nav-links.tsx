@@ -24,9 +24,9 @@ export function TopNavLinks() {
             href={l.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors",
+              "relative flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors",
               active
-                ? "bg-accent text-foreground"
+                ? "font-medium text-primary after:absolute after:inset-x-3 after:-bottom-[7px] after:h-0.5 after:rounded-full after:bg-primary"
                 : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
             )}
           >

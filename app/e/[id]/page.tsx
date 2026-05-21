@@ -26,7 +26,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     include: {
       owningGroup: { select: { id: true, name: true, color: true, slug: true } },
       location: true,
-      coHosts: { include: { group: { select: { id: true, name: true, slug: true } } } },
+      coHosts: { include: { group: { select: { id: true, name: true, slug: true, color: true } } } },
     },
   });
   if (!event) notFound();
@@ -38,7 +38,6 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const myRsvp = me ? await db.rSVP.findUnique({ where: { userId_eventId: { userId: me.id, eventId: id } } }) : null;
   const going = await goingCount(id);
 
-  // §12.4 — venue notes are editable by admins of any group that has hosted at this address.
   const canEditVenue = me && event.locationId
     ? !!(await db.event.findFirst({
         where: {
@@ -49,7 +48,6 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       }))
     : false;
 
-  // §9.2 — aggregate conditional display ("8 will go if 5 others do")
   const conditionalAgg = await db.rSVP.aggregate({
     where: { eventId: id, status: "CONDITIONAL", conditionalMinAttendees: { not: null } },
     _count: { _all: true },
@@ -79,56 +77,98 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     : false;
 
   return (
-    <section className="mx-auto max-w-3xl space-y-6">
+    <section className="relative mx-auto max-w-3xl space-y-6">
       <RealtimeSubscribe channels={[`event:${event.id}`, `group:${event.owningGroupId}`]} />
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: event.owningGroup.color }} />
-          <Link href={`/g/${event.owningGroup.slug}`} className="text-sm text-muted-foreground hover:underline">
-            {event.owningGroup.name}
-          </Link>
-          {event.coHosts.map((c) => (
-            <Link key={c.groupId} href={`/g/${c.group.slug}`} className="text-xs text-muted-foreground hover:underline">
-              + {c.group.name}
+
+      {/* Group-color wash behind the header. Identifies the owning group
+          at a glance without overpowering the title or copy. */}
+      <header
+        className="relative -mx-4 overflow-hidden border-t-[3px] px-4 pb-2 pt-6 sm:rounded-b-2xl sm:px-6"
+        style={{ borderTopColor: event.owningGroup.color }}
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-40"
+          style={{ background: `linear-gradient(180deg, ${event.owningGroup.color}26 0%, transparent 100%)` }}
+        />
+        <div className="relative space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/g/${event.owningGroup.slug}`}
+              className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
+              style={{ color: event.owningGroup.color }}
+            >
+              <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: event.owningGroup.color }} />
+              {event.owningGroup.name}
             </Link>
-          ))}
-          {event.status !== "CONFIRMED" && (
-            <Badge variant={event.status === "CANCELLED" ? "destructive" : "secondary"}>
-              {event.status.toLowerCase()}
-            </Badge>
+            {event.coHosts.map((c) => (
+              <Link
+                key={c.groupId}
+                href={`/g/${c.group.slug}`}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:underline"
+              >
+                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c.group.color }} />
+                + {c.group.name}
+              </Link>
+            ))}
+            {event.status !== "CONFIRMED" && (
+              <Badge variant={event.status === "CANCELLED" ? "destructive" : "secondary"}>
+                {event.status.toLowerCase()}
+              </Badge>
+            )}
+          </div>
+          <h1
+            className="font-display text-3xl font-medium leading-tight tracking-tight sm:text-4xl"
+            style={{ fontVariationSettings: '"opsz" 96, "SOFT" 35' }}
+          >
+            {event.title}
+          </h1>
+          <p className="font-mono text-sm tabular-nums text-muted-foreground">
+            {format(event.startsAt, "EEEE, MMMM d, yyyy")}
+            <span className="ml-2 text-foreground/85">
+              {format(event.startsAt, "p")} – {format(event.endsAt, "p")}
+            </span>
+          </p>
+          {event.location && (
+            <div className="space-y-1">
+              <VenueAddress address={event.location.address} venueName={event.location.venueName} />
+              {me && <TravelEstimate eventId={event.id} />}
+              {canEditVenue ? (
+                <VenueNotesEditor locationId={event.location.id} initialNotes={event.location.venueNotes} />
+              ) : event.location.venueNotes ? (
+                <p className="whitespace-pre-wrap text-xs text-muted-foreground">{event.location.venueNotes}</p>
+              ) : null}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            {event.cost && (
+              <p>
+                <span className="text-muted-foreground">Cost · </span>
+                <span className="font-medium">{event.cost}</span>
+              </p>
+            )}
+            {event.capacity && (
+              <p>
+                <span className="font-mono font-semibold tabular-nums">{going}</span>
+                <span className="text-muted-foreground"> / </span>
+                <span className="font-mono tabular-nums">{event.capacity}</span>
+                <span className="ml-1 text-muted-foreground">confirmed</span>
+              </p>
+            )}
+          </div>
+          {conditionalSummary && (
+            <p className="text-sm text-muted-foreground">{conditionalSummary}</p>
+          )}
+          {event.accessibilityFlags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {event.accessibilityFlags.map((f) => <Badge key={f} variant="outline">{f.replace(/_/g, " ")}</Badge>)}
+            </div>
           )}
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {format(event.startsAt, "EEEE MMM d, yyyy")} · {format(event.startsAt, "p")} – {format(event.endsAt, "p")}
-        </p>
-        {event.location && (
-          <>
-            <VenueAddress address={event.location.address} venueName={event.location.venueName} />
-            {me && <TravelEstimate eventId={event.id} />}
-            {canEditVenue ? (
-              <VenueNotesEditor locationId={event.location.id} initialNotes={event.location.venueNotes} />
-            ) : event.location.venueNotes ? (
-              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{event.location.venueNotes}</p>
-            ) : null}
-          </>
-        )}
-        {event.cost && <p className="text-sm">Cost: {event.cost}</p>}
-        {event.capacity && (
-          <p className="text-sm">{going} / {event.capacity} confirmed</p>
-        )}
-        {conditionalSummary && (
-          <p className="text-sm text-muted-foreground">{conditionalSummary}</p>
-        )}
-        {event.accessibilityFlags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {event.accessibilityFlags.map((f) => <Badge key={f} variant="outline">{f.replace(/_/g, " ")}</Badge>)}
-          </div>
-        )}
       </header>
 
       {event.description && (
-        <article className="prose prose-sm max-w-none whitespace-pre-wrap">{event.description}</article>
+        <article className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground/90">{event.description}</article>
       )}
 
       {me && event.status !== "CANCELLED" && (
@@ -155,7 +195,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
       {me && event.status !== "CANCELLED" && (
         <div>
-          <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">Your RSVP</h2>
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Your RSVP</h2>
           <RSVPButton
             eventId={event.id}
             initialStatus={myRsvp?.status as "GOING" | "INTERESTED" | "MAYBE" | "NOT_GOING" | "CONDITIONAL" | "WAITLIST" | undefined}
@@ -169,8 +209,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       <SimilarEvents eventId={event.id} />
 
       {isAdmin && (
-        <div className="space-y-3 rounded-md border bg-muted/40 p-4">
-          <h2 className="text-lg font-semibold">Admin tools</h2>
+        <div
+          className="space-y-3 rounded-xl border bg-card p-4"
+          style={{ boxShadow: "var(--shadow-paper)" }}
+        >
+          <h2 className="font-display text-lg font-medium tracking-tight">Admin tools</h2>
           <div className="flex flex-wrap gap-2">
             <Link href={`/e/${event.id}/edit`}><Button variant="outline" size="sm">Edit event</Button></Link>
             <Link href={`/e/${event.id}/admin`}><Button variant="outline" size="sm">Attendees</Button></Link>

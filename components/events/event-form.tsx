@@ -235,7 +235,7 @@ export function EventForm({ ownableGroups, initial }: { ownableGroups: Group[]; 
                 className={cn(
                   "rounded-full border px-3 py-1 text-sm font-medium transition-colors",
                   costKind === k
-                    ? "border-foreground bg-foreground text-background"
+                    ? "border-primary bg-primary text-primary-foreground"
                     : "border-input hover:bg-accent",
                 )}
               >

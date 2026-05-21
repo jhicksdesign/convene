@@ -7,15 +7,35 @@ export function AgendaView({ events }: { events: CalEvent[] }) {
     return <p className="text-sm text-muted-foreground">No upcoming events.</p>;
   }
   return (
-    <ul className="divide-y rounded-md border bg-background">
-      {events.map((e) => (
-        <li key={e.id + e.startsAt} className="flex items-center gap-3 px-3 py-2 text-sm">
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: e.color }} />
-          <span className="w-32 shrink-0 text-xs text-muted-foreground">{format(new Date(e.startsAt), "EEE MMM d, p")}</span>
-          <Link href={`/e/${e.id}`} className="truncate hover:underline">{e.title}</Link>
-          <span className="ml-auto truncate text-xs text-muted-foreground">{e.groupName}</span>
-        </li>
-      ))}
+    <ul className="overflow-hidden rounded-xl border bg-card" style={{ boxShadow: "var(--shadow-paper)" }}>
+      {events.map((e, i) => {
+        const cancelled = e.status === "CANCELLED";
+        return (
+          <li
+            key={e.id + e.startsAt}
+            className={`relative ${i > 0 ? "border-t border-border" : ""}`}
+          >
+            <span
+              aria-hidden="true"
+              className="absolute inset-y-0 left-0 w-1"
+              style={{ backgroundColor: e.color }}
+            />
+            <Link
+              href={`/e/${e.id}`}
+              className="flex items-center gap-3 py-3 pl-5 pr-3 text-sm transition-colors hover:bg-accent/40"
+            >
+              <span className="w-32 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                {format(new Date(e.startsAt), "EEE MMM d")}
+                <span className="ml-1 text-foreground/80">{format(new Date(e.startsAt), "p")}</span>
+              </span>
+              <span className={`truncate font-medium ${cancelled ? "line-through text-muted-foreground" : ""}`}>
+                {e.title}
+              </span>
+              <span className="ml-auto truncate text-xs text-muted-foreground">{e.groupName}</span>
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }

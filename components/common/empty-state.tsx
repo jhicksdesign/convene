@@ -11,16 +11,19 @@ interface Props {
 
 export function EmptyState({ icon: Icon, title, description, cta }: Props) {
   return (
-    <div className="rounded-md border border-dashed bg-muted/30 px-6 py-10 text-center">
-      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-background text-muted-foreground">
-        <Icon className="h-6 w-6" />
+    <div className="rounded-xl border border-dashed border-secondary bg-card/40 px-6 py-12 text-center">
+      <div
+        className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/15"
+        aria-hidden="true"
+      >
+        <Icon className="h-6 w-6" strokeWidth={1.5} />
       </div>
-      <h3 className="text-base font-medium">{title}</h3>
+      <h3 className="font-display text-xl font-medium tracking-tight">{title}</h3>
       {description && (
-        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{description}</p>
+        <p className="mx-auto mt-1.5 max-w-md text-sm text-muted-foreground">{description}</p>
       )}
       {cta && (
-        <Link href={cta.href} className="mt-4 inline-block">
+        <Link href={cta.href} className="mt-5 inline-block">
           <Button size="sm">{cta.label}</Button>
         </Link>
       )}

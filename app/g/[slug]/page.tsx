@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { Calendar } from "lucide-react";
 import { RealtimeSubscribe } from "@/components/realtime/subscribe";
 import { EmptyState } from "@/components/common/empty-state";
+import { pickTextColor } from "@/lib/color";
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -37,38 +38,88 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ sl
     take: 20,
   });
 
+  const overlayText = pickTextColor(group.color);
+
   return (
     <section className="space-y-6">
       <RealtimeSubscribe channels={[`group:${group.id}`]} />
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: group.color }} />
-            <h1 className="text-2xl font-semibold tracking-tight">{group.name}</h1>
+
+      {/* Colored band — the group identity reads instantly. Bleeds to the
+          content edges via negative margin to undo the main padding. */}
+      <header
+        className="relative -mx-4 -mt-6 overflow-hidden md:rounded-b-2xl"
+        style={{ backgroundColor: group.color }}
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.18) 100%)" }}
+        />
+        <div className="relative flex min-h-36 items-end justify-between gap-4 px-4 pb-5 pt-10 sm:min-h-44 sm:px-6 sm:pb-6 sm:pt-14">
+          <div className="max-w-2xl">
+            <h1
+              className="font-display text-4xl font-medium leading-none tracking-tight sm:text-5xl"
+              style={{ color: overlayText, fontVariationSettings: '"opsz" 120, "SOFT" 30' }}
+            >
+              {group.name}
+            </h1>
+            {group.description && (
+              <p
+                className="mt-2 max-w-xl text-sm leading-relaxed sm:text-base"
+                style={{ color: overlayText, opacity: 0.92 }}
+              >
+                {group.description}
+              </p>
+            )}
           </div>
-          {group.description && <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{group.description}</p>}
-        </div>
-        <div className="flex gap-2">
-          {me && <JoinButton groupId={group.id} initialState={memberState} />}
-          {isAdmin && <Link href={`/g/${group.slug}/admin`}><Button variant="outline">Admin</Button></Link>}
+          <div className="flex shrink-0 gap-2">
+            {me && <JoinButton groupId={group.id} initialState={memberState} />}
+            {isAdmin && <Link href={`/g/${group.slug}/admin`}><Button variant="outline">Admin</Button></Link>}
+          </div>
         </div>
       </header>
+
       <div>
-        <h2 className="text-lg font-semibold tracking-tight">Upcoming events</h2>
+        <h2 className="font-display text-2xl font-medium tracking-tight">Upcoming events</h2>
         {upcoming.length === 0 ? (
-          <EmptyState
-            icon={Calendar}
-            title="Nothing on the calendar yet"
-            description={isAdmin ? "Create the first event for this group." : "Check back soon — admins haven't scheduled anything."}
-            cta={isAdmin ? { label: "Create an event", href: "/e/new" } : undefined}
-          />
+          <div className="mt-3">
+            <EmptyState
+              icon={Calendar}
+              title="Nothing on the calendar yet"
+              description={isAdmin ? "Create the first event for this group." : "Check back soon — admins haven't scheduled anything."}
+              cta={isAdmin ? { label: "Create an event", href: "/e/new" } : undefined}
+            />
+          </div>
         ) : (
-          <ul className="mt-3 divide-y rounded-md border bg-background">
-            {upcoming.map((e) => (
-              <li key={e.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                <span className="w-32 shrink-0 text-xs text-muted-foreground">{format(e.startsAt, "EEE MMM d, p")}</span>
-                <Link href={`/e/${e.id}`} className="hover:underline">{e.title}</Link>
-                {e.status === "TENTATIVE" && <span className="ml-auto text-xs text-amber-600">tentative</span>}
+          <ul
+            className="mt-3 overflow-hidden rounded-xl border bg-card"
+            style={{ boxShadow: "var(--shadow-paper)" }}
+          >
+            {upcoming.map((e, i) => (
+              <li
+                key={e.id}
+                className={`relative ${i > 0 ? "border-t border-border" : ""}`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 w-1"
+                  style={{ backgroundColor: group.color }}
+                />
+                <Link
+                  href={`/e/${e.id}`}
+                  className="flex items-center gap-3 py-3 pl-5 pr-3 text-sm transition-colors hover:bg-accent/40"
+                >
+                  <span className="w-36 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                    {format(e.startsAt, "EEE MMM d")}
+                    <span className="ml-1 text-foreground/80">{format(e.startsAt, "p")}</span>
+                  </span>
+                  <span className="truncate font-medium">{e.title}</span>
+                  {e.status === "TENTATIVE" && (
+                    <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                      tentative
+                    </span>
+                  )}
+                </Link>
               </li>
             ))}
           </ul>
