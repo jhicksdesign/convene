@@ -24,9 +24,23 @@ function getResend(): Resend | null {
 // `avatarUrl`). The default PrismaAdapter assumes a User model with name/image
 // columns; our schema uses the convention names that match the rest of the app.
 const base = PrismaAdapter(db);
+// Explicitly reference each inherited method (no spread) so there's no doubt
+// about which methods get overridden. Logs prefixed with [adapter] confirm
+// our custom code is actually running in production.
 const adapter: Adapter = {
-  ...base,
+  // Inherited from PrismaAdapter unchanged
+  createSession: base.createSession!.bind(base),
+  getSessionAndUser: base.getSessionAndUser!.bind(base),
+  updateSession: base.updateSession!.bind(base),
+  deleteSession: base.deleteSession!.bind(base),
+  linkAccount: base.linkAccount!.bind(base),
+  unlinkAccount: base.unlinkAccount?.bind(base),
+  createVerificationToken: base.createVerificationToken?.bind(base),
+  useVerificationToken: base.useVerificationToken?.bind(base),
+  deleteUser: base.deleteUser?.bind(base),
+  // Our overrides: map Auth.js standard {name, image} → our {displayName, avatarUrl}
   async createUser(user) {
+    console.log("[adapter] createUser", { email: user.email, hasName: !!user.name });
     const created = await db.user.create({
       data: {
         email: user.email,
