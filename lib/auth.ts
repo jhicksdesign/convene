@@ -9,7 +9,16 @@ import { db } from "@/lib/db";
 import { renderMagicLinkEmail } from "@/lib/email/templates/magic-link";
 import { rateLimit, RateLimitError } from "@/lib/rate-limit";
 
-const resend = new Resend(process.env.RESEND_API_KEY ?? "");
+// Lazy-init the Resend client so module evaluation at build time (inside the
+// Docker image where no runtime env vars exist) doesn't throw on a missing
+// API key. The Resend SDK validates the key in its constructor.
+let _resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (_resend) return _resend;
+  if (!process.env.RESEND_API_KEY) return null;
+  _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(db),
@@ -63,6 +72,11 @@ export const authConfig: NextAuthConfig = {
             return;
           }
           throw e;
+        }
+        const resend = getResend();
+        if (!resend) {
+          console.warn("[auth] RESEND_API_KEY not set — magic link not sent", identifier);
+          return;
         }
         const { subject, html, text } = renderMagicLinkEmail({ url });
         await resend.emails.send({

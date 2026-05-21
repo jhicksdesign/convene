@@ -59,7 +59,7 @@ jobs:
         run: npx prisma migrate deploy
 
       - name: Apply pgvector + embedding column
-        run: psql "$DATABASE_URL" -f prisma/migrations/manual/001_pgvector_event_embedding.sql || true
+        run: psql "$DATABASE_URL" -f prisma/sql/001_pgvector_event_embedding.sql || true
 
       - name: Seed
         run: npm run prisma:seed

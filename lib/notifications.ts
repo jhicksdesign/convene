@@ -5,7 +5,14 @@ import { Resend } from "resend";
 import type { NotificationCategory } from "@prisma/client";
 import { pushTo } from "@/lib/web-push";
 
-const resend = new Resend(process.env.RESEND_API_KEY ?? "");
+// Lazy-init: see lib/auth.ts for the same pattern + rationale.
+let _resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (_resend) return _resend;
+  if (!process.env.RESEND_API_KEY) return null;
+  _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 
 interface DispatchArgs {
   userId: string;
@@ -55,8 +62,9 @@ export async function dispatch(args: DispatchArgs): Promise<void> {
 
   let emailedAt: Date | null = null;
   if (wantEmail && args.email) {
+    const resend = getResend();
     const user = await db.user.findUnique({ where: { id: args.userId }, select: { email: true } });
-    if (user) {
+    if (resend && user) {
       try {
         await resend.emails.send({
           from: process.env.EMAIL_FROM ?? "Convene <noreply@example.com>",
