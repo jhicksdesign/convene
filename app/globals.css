@@ -43,6 +43,13 @@
   --color-input:                #E3D5B8;
   --color-ring:                 #C04E22;
 
+  /* Hero atmosphere — two-tone gradient orbs on logged-out + login.
+     Warm = brand sienna; cool = dusky sand in light mode, steel blue
+     in dark mode (so the backdrop reads "warm + cool dusk" rather
+     than monochrome orange). */
+  --color-orb-warm:             #C04E22;
+  --color-orb-cool:             #C9B98F;
+
   --radius: 0.5rem;
 
   /* Typography
@@ -88,6 +95,9 @@
     --color-border:               #2A3142;
     --color-input:                #2A3142;
     --color-ring:                 #E2774C;
+
+    --color-orb-warm:             #E2774C;
+    --color-orb-cool:             #5B7BA1;  /* dusky steel-blue */
 
     --shadow-paper: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.2);
     --shadow-lift:  0 2px 4px rgba(0, 0, 0, 0.4), 0 12px 32px -8px rgba(226, 119, 76, 0.18);
@@ -136,6 +146,34 @@ h3 { font-variation-settings: "opsz" 36,  "SOFT" 50; }
 /* Mono for numeric/tabular contexts. Used by calendar time labels. */
 .font-mono {
   font-feature-settings: "tnum", "zero";
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Hero orbs — slow ambient drift.
+   The motion is deliberately glacial (20-30s loop) so the page feels
+   "alive but unhurried" — not a moving CSS demo. Reduced-motion users
+   see them static.
+   ───────────────────────────────────────────────────────────────────── */
+
+@keyframes orb-drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(40px, 24px, 0); }
+}
+@keyframes orb-drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(-32px, -28px, 0); }
+}
+@keyframes orb-drift-c {
+  0%, 100% { transform: translate3d(-50%, -50%, 0); }
+  50%      { transform: translate3d(calc(-50% + 24px), calc(-50% - 18px), 0); }
+}
+
+.orb-a { animation: orb-drift-a 22s ease-in-out infinite; }
+.orb-b { animation: orb-drift-b 28s ease-in-out infinite; }
+.orb-c { animation: orb-drift-c 34s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-a, .orb-b, .orb-c { animation: none; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────

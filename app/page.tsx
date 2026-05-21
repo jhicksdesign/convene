@@ -15,11 +15,21 @@ export default async function HomePage() {
     return (
       <section className="relative mx-auto max-w-3xl py-16 text-center sm:py-24">
         {/* Atmospheric backdrop — fixed to viewport so the gradients span
-            the whole screen on wide monitors, not just the centered column. */}
+            the whole screen on wide monitors, not just the centered column.
+            Two-tone (warm sienna + cool dusk) and gently drifting. */}
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute -left-40 top-1/4 h-[40rem] w-[40rem] -translate-y-1/2 rounded-full bg-primary/15 blur-3xl dark:bg-primary/20" />
-          <div className="absolute -right-32 top-1/2 h-[36rem] w-[36rem] rounded-full bg-secondary/50 blur-3xl dark:bg-primary/10" />
-          <div className="absolute left-1/2 bottom-0 h-[28rem] w-[28rem] -translate-x-1/2 translate-y-1/3 rounded-full bg-primary/10 blur-3xl dark:bg-primary/15" />
+          <div
+            className="orb-a absolute -left-24 -top-24 h-[22rem] w-[22rem] rounded-full blur-3xl opacity-60 sm:-left-40 sm:h-[44rem] sm:w-[44rem] sm:opacity-100"
+            style={{ backgroundColor: "var(--color-orb-warm)", filter: "blur(80px)" }}
+          />
+          <div
+            className="orb-b absolute -right-24 -bottom-24 h-[22rem] w-[22rem] rounded-full blur-3xl opacity-50 sm:-right-40 sm:h-[40rem] sm:w-[40rem] sm:opacity-80"
+            style={{ backgroundColor: "var(--color-orb-cool)", filter: "blur(80px)" }}
+          />
+          <div
+            className="orb-c hidden sm:block absolute left-1/2 top-1/2 h-[26rem] w-[26rem] rounded-full"
+            style={{ backgroundColor: "var(--color-orb-warm)", opacity: 0.18, filter: "blur(100px)" }}
+          />
         </div>
         <h1
           className="font-display text-5xl font-medium leading-none tracking-tight sm:text-7xl"

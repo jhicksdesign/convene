@@ -19,12 +19,22 @@ export default function LoginPage() {
 
   return (
     <section className="relative -mx-4 -my-6 flex min-h-[calc(100vh-3.5rem)] items-center justify-center overflow-hidden px-4 py-12">
-      {/* Atmospheric backdrop — fixed to viewport so the gradients fill
-          the whole screen on wide monitors, not just the centered column. */}
+      {/* Atmospheric backdrop — fixed to viewport, two-tone (warm + cool dusk),
+          gently drifting. Scaled down on mobile so it doesn't read as a single
+          orange wash. */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -left-40 top-0 h-[40rem] w-[40rem] rounded-full bg-primary/15 blur-3xl dark:bg-primary/20" />
-        <div className="absolute -right-32 bottom-0 h-[36rem] w-[36rem] rounded-full bg-secondary/60 blur-3xl dark:bg-primary/10" />
-        <div className="absolute left-1/2 top-1/3 h-[26rem] w-[26rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl dark:bg-primary/15" />
+        <div
+          className="orb-a absolute -left-24 -top-20 h-[20rem] w-[20rem] rounded-full opacity-65 sm:-left-40 sm:h-[40rem] sm:w-[40rem] sm:opacity-100"
+          style={{ backgroundColor: "var(--color-orb-warm)", filter: "blur(80px)" }}
+        />
+        <div
+          className="orb-b absolute -right-24 -bottom-20 h-[20rem] w-[20rem] rounded-full opacity-55 sm:-right-40 sm:h-[36rem] sm:w-[36rem] sm:opacity-90"
+          style={{ backgroundColor: "var(--color-orb-cool)", filter: "blur(80px)" }}
+        />
+        <div
+          className="orb-c hidden sm:block absolute left-1/2 top-1/2 h-[24rem] w-[24rem] rounded-full"
+          style={{ backgroundColor: "var(--color-orb-warm)", opacity: 0.16, filter: "blur(100px)" }}
+        />
       </div>
 
       <div className="relative w-full max-w-sm">
