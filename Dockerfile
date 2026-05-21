@@ -33,6 +33,10 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache openssl
 
+# Pin must match prisma in package.json. The CLI is invoked at container start
+# via `prisma migrate deploy` in railway.json's startCommand.
+RUN npm install -g prisma@6.19.3
+
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
@@ -46,7 +50,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Prisma client + schema are needed at runtime for migrate-deploy and the engine.
+# Prisma client + schema needed at runtime; the CLI is installed below.
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
