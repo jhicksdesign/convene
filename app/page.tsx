@@ -14,9 +14,12 @@ export default async function HomePage() {
   if (!user) {
     return (
       <section className="relative mx-auto max-w-3xl py-16 text-center sm:py-24">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -left-32 top-0 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
-          <div className="absolute -right-32 bottom-0 h-72 w-72 rounded-full bg-secondary/50 blur-3xl" />
+        {/* Atmospheric backdrop — fixed to viewport so the gradients span
+            the whole screen on wide monitors, not just the centered column. */}
+        <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute -left-40 top-1/4 h-[40rem] w-[40rem] -translate-y-1/2 rounded-full bg-primary/15 blur-3xl dark:bg-primary/20" />
+          <div className="absolute -right-32 top-1/2 h-[36rem] w-[36rem] rounded-full bg-secondary/50 blur-3xl dark:bg-primary/10" />
+          <div className="absolute left-1/2 bottom-0 h-[28rem] w-[28rem] -translate-x-1/2 translate-y-1/3 rounded-full bg-primary/10 blur-3xl dark:bg-primary/15" />
         </div>
         <h1
           className="font-display text-5xl font-medium leading-none tracking-tight sm:text-7xl"

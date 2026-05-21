@@ -19,11 +19,12 @@ export default function LoginPage() {
 
   return (
     <section className="relative -mx-4 -my-6 flex min-h-[calc(100vh-3.5rem)] items-center justify-center overflow-hidden px-4 py-12">
-      {/* Atmospheric backdrop — warm gradients evoking dusk, not a login form. */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -left-40 top-0 h-[28rem] w-[28rem] rounded-full bg-primary/15 blur-3xl" />
-        <div className="absolute -right-32 bottom-0 h-[24rem] w-[24rem] rounded-full bg-secondary/60 blur-3xl" />
-        <div className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+      {/* Atmospheric backdrop — fixed to viewport so the gradients fill
+          the whole screen on wide monitors, not just the centered column. */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -left-40 top-0 h-[40rem] w-[40rem] rounded-full bg-primary/15 blur-3xl dark:bg-primary/20" />
+        <div className="absolute -right-32 bottom-0 h-[36rem] w-[36rem] rounded-full bg-secondary/60 blur-3xl dark:bg-primary/10" />
+        <div className="absolute left-1/2 top-1/3 h-[26rem] w-[26rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl dark:bg-primary/15" />
       </div>
 
       <div className="relative w-full max-w-sm">
