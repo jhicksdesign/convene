@@ -4,14 +4,13 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Discord from "next-auth/providers/discord";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import type { Adapter, AdapterUser } from "@auth/core/adapters";
 import { Resend } from "resend";
 import { db } from "@/lib/db";
 import { renderMagicLinkEmail } from "@/lib/email/templates/magic-link";
 import { rateLimit, RateLimitError } from "@/lib/rate-limit";
 
-// Lazy-init the Resend client so module evaluation at build time (inside the
-// Docker image where no runtime env vars exist) doesn't throw on a missing
-// API key. The Resend SDK validates the key in its constructor.
+// Lazy-init the Resend client (see Dockerfile build-time considerations).
 let _resend: Resend | null = null;
 function getResend(): Resend | null {
   if (_resend) return _resend;
@@ -20,33 +19,108 @@ function getResend(): Resend | null {
   return _resend;
 }
 
+// Custom adapter wrapping PrismaAdapter so OAuth user creation maps Auth.js's
+// standard fields (`name`, `image`) to our schema columns (`displayName`,
+// `avatarUrl`). The default PrismaAdapter assumes a User model with name/image
+// columns; our schema uses the convention names that match the rest of the app.
+const base = PrismaAdapter(db);
+const adapter: Adapter = {
+  ...base,
+  async createUser(user) {
+    const created = await db.user.create({
+      data: {
+        email: user.email,
+        emailVerified: user.emailVerified,
+        displayName: user.name ?? user.email.split("@")[0] ?? "User",
+        avatarUrl: user.image ?? null,
+      },
+    });
+    return {
+      id: created.id,
+      email: created.email,
+      emailVerified: created.emailVerified,
+      name: created.displayName,
+      image: created.avatarUrl,
+    } satisfies AdapterUser;
+  },
+  async getUser(id) {
+    const u = await db.user.findUnique({ where: { id } });
+    if (!u) return null;
+    return {
+      id: u.id,
+      email: u.email,
+      emailVerified: u.emailVerified,
+      name: u.displayName,
+      image: u.avatarUrl,
+    };
+  },
+  async getUserByEmail(email) {
+    const u = await db.user.findUnique({ where: { email } });
+    if (!u) return null;
+    return {
+      id: u.id,
+      email: u.email,
+      emailVerified: u.emailVerified,
+      name: u.displayName,
+      image: u.avatarUrl,
+    };
+  },
+  async getUserByAccount({ provider, providerAccountId }) {
+    const acc = await db.account.findUnique({
+      where: { provider_providerAccountId: { provider, providerAccountId } },
+      include: { user: true },
+    });
+    if (!acc) return null;
+    return {
+      id: acc.user.id,
+      email: acc.user.email,
+      emailVerified: acc.user.emailVerified,
+      name: acc.user.displayName,
+      image: acc.user.avatarUrl,
+    };
+  },
+  async updateUser(user) {
+    const updated = await db.user.update({
+      where: { id: user.id },
+      data: {
+        email: user.email,
+        emailVerified: user.emailVerified,
+        ...(user.name !== undefined && { displayName: user.name ?? "User" }),
+        ...(user.image !== undefined && { avatarUrl: user.image }),
+      },
+    });
+    return {
+      id: updated.id,
+      email: updated.email,
+      emailVerified: updated.emailVerified,
+      name: updated.displayName,
+      image: updated.avatarUrl,
+    };
+  },
+};
+
 export const authConfig: NextAuthConfig = {
-  adapter: PrismaAdapter(db),
+  adapter,
   session: { strategy: "database", maxAge: 30 * 24 * 60 * 60, updateAge: 24 * 60 * 60 },
   pages: { signIn: "/login", verifyRequest: "/verify", newUser: "/onboarding" },
   providers: [
-    // Discord OAuth — optional; only registered when env vars are present so
-    // local dev doesn't need them. Furry-community-focused communities have
-    // strong existing Discord identity, so this is a natural primary OAuth.
     ...(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET
       ? [
           Discord({
             clientId: process.env.DISCORD_CLIENT_ID,
             clientSecret: process.env.DISCORD_CLIENT_SECRET,
-            // Pull only the identity fields we need. Email is required for
-            // our user model; the user can revoke at Discord any time.
             authorization: { params: { scope: "identify email" } },
             profile(p: { id: string; username: string; email: string | null; avatar: string | null }) {
               const avatarUrl = p.avatar
                 ? `https://cdn.discordapp.com/avatars/${p.id}/${p.avatar}.png`
                 : null;
+              // Return only Auth.js standard fields; the custom adapter above
+              // maps these to our schema columns on create.
               return {
                 id: p.id,
                 name: p.username,
                 email: p.email,
                 image: avatarUrl,
-                displayName: p.username,
-                avatarUrl,
               };
             },
           }),
@@ -56,18 +130,16 @@ export const authConfig: NextAuthConfig = {
       id: "email",
       name: "Email",
       type: "email",
-      maxAge: 15 * 60, // §7.1 — 15-minute expiry
+      maxAge: 15 * 60,
       from: process.env.EMAIL_FROM ?? "Convene <noreply@example.com>",
       server: {},
       options: {},
       sendVerificationRequest: async ({ identifier, url }) => {
-        // Anti-spam: 1 magic link per minute, 5 per hour, per email.
         try {
           await rateLimit(`magic-min:${identifier.toLowerCase()}`, 1, 60_000, "Wait a minute before requesting another link.");
           await rateLimit(`magic-hr:${identifier.toLowerCase()}`, 5, 60 * 60_000, "Too many sign-in requests — try again in an hour.");
         } catch (e) {
           if (e instanceof RateLimitError) {
-            // Swallow silently so we don't leak email-existence to attackers.
             console.warn("[auth] magic-link rate-limited", identifier);
             return;
           }
