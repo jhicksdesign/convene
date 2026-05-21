@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -52,7 +53,19 @@ export function NotificationPrefs({ initial }: { initial: Prefs }) {
           })}
         </tbody>
       </table>
-      <Button onClick={() => start(() => updateNotificationPrefs(prefs))} disabled={pending}>
+      <Button
+        onClick={() =>
+          start(async () => {
+            try {
+              await updateNotificationPrefs(prefs);
+              toast.success("Notification preferences updated");
+            } catch (e: unknown) {
+              toast.error(e instanceof Error ? e.message : "Couldn't save");
+            }
+          })
+        }
+        disabled={pending}
+      >
         {pending ? "Saving…" : "Save preferences"}
       </Button>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -37,7 +38,19 @@ export function PrivacyForm({ initial }: { initial: PrivacyUpdate }) {
         <Label>Show on attendee lists</Label>
         <Switch checked={state.showOnAttendeeLists} onCheckedChange={(v) => set("showOnAttendeeLists", v)} />
       </div>
-      <Button onClick={() => start(() => updatePrivacy(state))} disabled={pending}>
+      <Button
+        onClick={() =>
+          start(async () => {
+            try {
+              await updatePrivacy(state);
+              toast.success("Privacy settings updated");
+            } catch (e: unknown) {
+              toast.error(e instanceof Error ? e.message : "Couldn't save");
+            }
+          })
+        }
+        disabled={pending}
+      >
         {pending ? "Saving…" : "Save"}
       </Button>
     </div>

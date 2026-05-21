@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileActions } from "@/components/profile/profile-actions";
 import { AdminNoteEditor } from "@/components/safety/admin-note-editor";
 import { variants } from "@/lib/cf-images";
+import { pickTextColor } from "@/lib/color";
 
 export default async function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -77,7 +78,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
       <header className="flex items-start gap-4">
         <Avatar className="h-16 w-16">
           {user.avatarUrl && <AvatarImage src={variants.avatarLarge(user.avatarUrl) ?? user.avatarUrl} alt={user.displayName} />}
-          <AvatarFallback>{user.displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+          <AvatarFallback seed={user.id}>{user.displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <h1 className="text-2xl font-semibold tracking-tight">{user.displayName}</h1>
@@ -90,7 +91,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
       </header>
       <div className="flex flex-wrap gap-1.5">
         {user.memberships.map((m) => (
-          <span key={m.id} className="rounded-full px-2 py-0.5 text-xs text-white" style={{ backgroundColor: m.group.color }}>
+          <span key={m.id} className="rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: m.group.color, color: pickTextColor(m.group.color) }}>
             {m.group.name}
           </span>
         ))}

@@ -1,9 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { proposeSafetyNetwork, confirmSafetyNetwork } from "@/app/_actions/groups";
 
 interface Group { id: string; name: string; color: string }
@@ -14,13 +22,34 @@ interface Edge {
 
 interface Props {
   groupId: string;
-  candidateGroups: Group[]; // groups we can propose to (not ourselves, not already linked)
+  candidateGroups: Group[];
   edges: Edge[];
 }
 
 export function SafetyNetworkPanel({ groupId, candidateGroups, edges }: Props) {
-  const [pending, start] = useTransition();
   const [target, setTarget] = useState<string>(candidateGroups[0]?.id ?? "");
+  const [dialog, setDialog] = useState<{ kind: "propose" | "confirm"; otherId: string; otherName: string } | null>(null);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function run() {
+    if (!dialog) return;
+    setError(null);
+    start(async () => {
+      try {
+        if (dialog.kind === "propose") {
+          await proposeSafetyNetwork(groupId, dialog.otherId);
+          toast.success(`Proposed safety-network partnership with ${dialog.otherName}.`);
+        } else {
+          await confirmSafetyNetwork(groupId, dialog.otherId);
+          toast.success(`Safety-network active with ${dialog.otherName}.`);
+        }
+        setDialog(null);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Action failed");
+      }
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -55,11 +84,13 @@ export function SafetyNetworkPanel({ groupId, candidateGroups, edges }: Props) {
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: e.otherGroup.color }} />
                   {e.otherGroup.name}
                 </span>
-                <ConfirmDialog
-                  triggerLabel="Confirm"
-                  pending={pending}
-                  onConfirm={() => start(() => confirmSafetyNetwork(groupId, e.otherGroup.id))}
-                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setDialog({ kind: "confirm", otherId: e.otherGroup.id, otherName: e.otherGroup.name })}
+                >
+                  Confirm
+                </Button>
               </li>
             ))}
           </ul>
@@ -91,40 +122,42 @@ export function SafetyNetworkPanel({ groupId, candidateGroups, edges }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            <ConfirmDialog
-              triggerLabel="Propose"
-              pending={pending}
-              onConfirm={() => start(() => proposeSafetyNetwork(groupId, target))}
-            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!target}
+              onClick={() => {
+                const g = candidateGroups.find((c) => c.id === target);
+                if (g) setDialog({ kind: "propose", otherId: g.id, otherName: g.name });
+              }}
+            >
+              Propose
+            </Button>
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function ConfirmDialog({ triggerLabel, pending, onConfirm }: { triggerLabel: string; pending: boolean; onConfirm: () => void }) {
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline" disabled={pending}>{triggerLabel}</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Enable safety-network sharing?</DialogTitle>
-          <DialogDescription>
-            Your group's admins will be able to see incident reports and admin notes about your members that the other group's admins mark "share with safety network." The reverse is also true. This is intended for groups whose admins you trust. You can revoke later.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <DialogClose asChild>
-            <Button onClick={onConfirm} disabled={pending}>I understand — turn it on</Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <Dialog open={dialog !== null} onOpenChange={(v) => { if (!v) { setDialog(null); setError(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {dialog?.kind === "confirm" ? `Accept partnership with ${dialog.otherName}?` : `Propose partnership to ${dialog?.otherName}?`}
+            </DialogTitle>
+            <DialogDescription>
+              Your group's admins will be able to see incident reports and admin notes about your members that the other group's admins mark "share with safety network." The reverse is also true. This is intended for groups whose admins you trust. You can revoke later.
+            </DialogDescription>
+          </DialogHeader>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialog(null)} disabled={pending}>
+              Cancel
+            </Button>
+            <Button onClick={run} disabled={pending}>
+              {pending ? "Working…" : "I understand — turn it on"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

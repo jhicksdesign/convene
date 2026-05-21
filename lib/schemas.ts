@@ -47,6 +47,7 @@ const eventBase = z.object({
   rrule: z.string().optional().nullable(),
   coHostGroupIds: z.array(z.string()).default([]),
   allowPlusOnes: z.boolean().default(false),
+  useWaitlist: z.boolean().default(true),
 });
 
 export const eventCreate = eventBase.refine((v) => v.endsAt > v.startsAt, { message: "endsAt must be after startsAt" });

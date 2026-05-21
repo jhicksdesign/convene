@@ -12,6 +12,7 @@ export function TopBarSearch() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Hit[]>([]);
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
@@ -26,11 +27,29 @@ export function TopBarSearch() {
       if (r.ok) {
         const j = await r.json();
         setResults(j.results as Hit[]);
+        setActiveIndex(0);
         setOpen(true);
       }
     }, 200);
     return () => { if (timer.current) clearTimeout(timer.current); };
   }, [query]);
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" && results[activeIndex]) {
+      e.preventDefault();
+      router.push(results[activeIndex].href);
+      setQuery("");
+      setOpen(false);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  }
 
   return (
     <div className="relative hidden w-72 md:block">
@@ -42,22 +61,24 @@ export function TopBarSearch() {
         className="pl-8"
         onFocus={() => results.length > 0 && setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && results[0]) {
-            router.push(results[0].href);
-            setQuery("");
-            setOpen(false);
-          }
-          if (e.key === "Escape") setOpen(false);
-        }}
+        onKeyDown={onKeyDown}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls="topbar-listbox"
+        aria-autocomplete="list"
       />
       {open && results.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full z-30 mt-1 max-h-80 overflow-auto rounded-md border bg-popover shadow-md">
-          {results.map((h) => (
-            <li key={`${h.kind}-${h.id}`}>
+        <ul
+          id="topbar-listbox"
+          role="listbox"
+          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-80 overflow-auto rounded-md border bg-popover shadow-md"
+        >
+          {results.map((h, i) => (
+            <li key={`${h.kind}-${h.id}`} role="option" aria-selected={i === activeIndex}>
               <Link
                 href={h.href}
-                className="flex items-center justify-between px-3 py-2 text-sm hover:bg-accent"
+                className={`flex items-center justify-between px-3 py-2 text-sm ${i === activeIndex ? "bg-accent" : "hover:bg-accent"}`}
+                onMouseEnter={() => setActiveIndex(i)}
                 onClick={() => { setQuery(""); setOpen(false); }}
               >
                 <div>

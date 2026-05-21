@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { EmptyState } from "@/components/common/empty-state";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { recommendFor } from "@/lib/recommendations";
@@ -36,9 +38,12 @@ export default async function HomePage() {
     <section className="space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">For you</h1>
       {recommendations.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No recommendations yet. Join a few groups or RSVP to events to start seeing what's relevant.
-        </p>
+        <EmptyState
+          icon={Sparkles}
+          title="Nothing tailored for you yet"
+          description="Recommendations get smarter as you join groups and RSVP to events. Start by browsing what's around."
+          cta={{ label: "Browse groups", href: "/groups" }}
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {recommendations.map((r) => {

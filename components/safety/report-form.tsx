@@ -1,21 +1,32 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Uploader } from "@/components/common/uploader";
+import { UserCombobox } from "@/components/common/user-combobox";
+import { EventCombobox, type EventOption } from "@/components/common/event-combobox";
 import { submitReport } from "@/app/_actions/reports";
 import { useRouter } from "next/navigation";
 
 const MAX_FILES = 5;
 
-export function ReportForm({ initialSubjectId, initialEventId }: { initialSubjectId?: string; initialEventId?: string }) {
+interface SubjectUser { id: string; displayName: string; avatarUrl: string | null }
+
+interface Props {
+  initialSubject?: SubjectUser | null;
+  initialEvent?: EventOption | null;
+}
+
+export function ReportForm({ initialSubject, initialEvent }: Props) {
   const [pending, start] = useTransition();
   const [confidential, setConfidential] = useState(false);
   const [shareWithSafetyNetwork, setShare] = useState(false);
+  const [subject, setSubject] = useState<SubjectUser | null>(initialSubject ?? null);
+  const [event, setEvent] = useState<EventOption | null>(initialEvent ?? null);
   const [evidenceUrls, setEvidenceUrls] = useState<string[]>([]);
   const router = useRouter();
 
@@ -28,35 +39,40 @@ export function ReportForm({ initialSubjectId, initialEventId }: { initialSubjec
 
   function onSubmit(form: FormData) {
     start(async () => {
-      const r = await submitReport({
-        subjectId: (form.get("subjectId") as string) || initialSubjectId || null,
-        eventId: (form.get("eventId") as string) || initialEventId || null,
-        body: form.get("body") as string,
-        evidenceUrls,
-        confidential,
-        shareWithSafetyNetwork,
-      });
-      router.push(`/reports/${r.id}`);
+      try {
+        const r = await submitReport({
+          subjectId: subject?.id ?? null,
+          eventId: event?.id ?? null,
+          body: form.get("body") as string,
+          evidenceUrls,
+          confidential,
+          shareWithSafetyNetwork,
+        });
+        toast.success("Report submitted — admins have been notified.");
+        router.push(`/reports/${r.id}`);
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Couldn't submit report");
+      }
     });
   }
 
   return (
     <form action={onSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="subjectId">Subject user ID (optional)</Label>
-        <Input id="subjectId" name="subjectId" defaultValue={initialSubjectId} />
+        <Label>Who is this about? <span className="font-normal text-muted-foreground">(optional)</span></Label>
+        <UserCombobox value={subject} onChange={setSubject} placeholder="Search by name…" />
       </div>
       <div>
-        <Label htmlFor="eventId">Event ID (optional)</Label>
-        <Input id="eventId" name="eventId" defaultValue={initialEventId} />
+        <Label>Which event? <span className="font-normal text-muted-foreground">(optional)</span></Label>
+        <EventCombobox value={event} onChange={setEvent} placeholder="Search by event title…" />
       </div>
       <div>
         <Label htmlFor="body">What happened?</Label>
-        <Textarea id="body" name="body" rows={8} required minLength={10} />
+        <Textarea id="body" name="body" rows={8} required minLength={10} placeholder="Describe the incident. Be specific about what happened, when, and who saw it." />
       </div>
 
       <div className="space-y-2">
-        <Label>Evidence files (optional, up to {MAX_FILES})</Label>
+        <Label>Evidence files <span className="font-normal text-muted-foreground">(optional, up to {MAX_FILES})</span></Label>
         {evidenceUrls.length > 0 && (
           <ul className="space-y-1">
             {evidenceUrls.map((url) => (

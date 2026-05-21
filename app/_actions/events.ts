@@ -51,6 +51,7 @@ export async function createEvent(input: unknown): Promise<{ eventId: string; co
       accessibilityFlags: data.accessibilityFlags,
       rrule: data.rrule ?? null,
       allowPlusOnes: data.allowPlusOnes,
+      useWaitlist: data.useWaitlist,
       coHosts: { create: data.coHostGroupIds.map((groupId) => ({ groupId })) },
     },
   });
@@ -91,6 +92,7 @@ export async function updateEvent(eventId: string, input: unknown): Promise<Conf
       ...(data.accessibilityFlags !== undefined && { accessibilityFlags: data.accessibilityFlags }),
       ...(data.rrule !== undefined && { rrule: data.rrule }),
       ...(data.allowPlusOnes !== undefined && { allowPlusOnes: data.allowPlusOnes }),
+      ...(data.useWaitlist !== undefined && { useWaitlist: data.useWaitlist }),
     },
   });
 

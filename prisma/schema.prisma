@@ -203,6 +203,7 @@ model Event {
   accessibilityFlags String[]
 
   allowPlusOnes Boolean @default(false)
+  useWaitlist   Boolean @default(true)  // When false, capacity is informational (no auto-WAITLIST status)
 
   rrule                String?
   recurrenceParentId   String?

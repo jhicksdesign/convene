@@ -10,11 +10,16 @@ interface Group { id: string; name: string }
  * Pairs the EventForm with the NL assistant sidebar. Clicking a suggestion
  * remounts the form with the picked date prefilled.
  */
-export function EventFormWithAssistant({ ownableGroups }: { ownableGroups: Group[] }) {
-  const [seed, setSeed] = useState<EventFormInitial>({});
+export function EventFormWithAssistant({
+  ownableGroups,
+  initial,
+}: {
+  ownableGroups: Group[];
+  initial?: EventFormInitial;
+}) {
+  const [seed, setSeed] = useState<EventFormInitial>(initial ?? {});
 
   function pickDate(iso: string) {
-    // Default 19:00–21:00 local on the chosen day if nothing already chosen.
     const start = new Date(iso);
     if (Number.isNaN(start.getTime())) return;
     start.setHours(19, 0, 0, 0);
@@ -31,7 +36,7 @@ export function EventFormWithAssistant({ ownableGroups }: { ownableGroups: Group
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div>
-        <EventForm key={`${seed.startsAt ?? "empty"}`} ownableGroups={ownableGroups} initial={seed} />
+        <EventForm key={`${seed.startsAt ?? "empty"}-${initial?.id ?? "new"}`} ownableGroups={ownableGroups} initial={seed} />
       </div>
       <AssistantSidebar groups={ownableGroups} onPickDate={pickDate} />
     </div>

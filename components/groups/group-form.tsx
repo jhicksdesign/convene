@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -36,8 +37,17 @@ export function GroupForm({ initial }: Props) {
         visibility,
         joinMode,
       };
-      if (initial) await updateGroup(initial.id, payload);
-      else await createGroup(payload);
+      try {
+        if (initial) {
+          await updateGroup(initial.id, payload);
+          toast.success("Group updated");
+        } else {
+          // createGroup redirects on success, so this branch's toast won't show
+          await createGroup(payload);
+        }
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Couldn't save group");
+      }
     });
   }
 

@@ -5,7 +5,9 @@ import { getCurrentUser, isAdminOf } from "@/lib/auth-helpers";
 import { JoinButton } from "@/components/groups/join-button";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { Calendar } from "lucide-react";
 import { RealtimeSubscribe } from "@/components/realtime/subscribe";
+import { EmptyState } from "@/components/common/empty-state";
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -54,7 +56,12 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ sl
       <div>
         <h2 className="text-lg font-semibold tracking-tight">Upcoming events</h2>
         {upcoming.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">Nothing on the calendar yet.</p>
+          <EmptyState
+            icon={Calendar}
+            title="Nothing on the calendar yet"
+            description={isAdmin ? "Create the first event for this group." : "Check back soon — admins haven't scheduled anything."}
+            cta={isAdmin ? { label: "Create an event", href: "/e/new" } : undefined}
+          />
         ) : (
           <ul className="mt-3 divide-y rounded-md border bg-background">
             {upcoming.map((e) => (

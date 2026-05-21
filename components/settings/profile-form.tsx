@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -25,17 +26,22 @@ export function ProfileForm({ initial }: { initial: Initial }) {
   const [displayName, setDisplayName] = useState(initial.displayName);
 
   function onSubmit(form: FormData) {
-    start(() =>
-      updateProfile({
-        displayName: form.get("displayName"),
-        pronouns: form.get("pronouns") || undefined,
-        bio: form.get("bio") || undefined,
-        avatarUrl,
-        timezone: form.get("timezone"),
-        homeLat: form.get("homeLat") ? Number(form.get("homeLat")) : null,
-        homeLng: form.get("homeLng") ? Number(form.get("homeLng")) : null,
-      }),
-    );
+    start(async () => {
+      try {
+        await updateProfile({
+          displayName: form.get("displayName"),
+          pronouns: form.get("pronouns") || undefined,
+          bio: form.get("bio") || undefined,
+          avatarUrl,
+          timezone: form.get("timezone"),
+          homeLat: form.get("homeLat") ? Number(form.get("homeLat")) : null,
+          homeLng: form.get("homeLng") ? Number(form.get("homeLng")) : null,
+        });
+        toast.success("Profile updated");
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Couldn't save profile");
+      }
+    });
   }
 
   return (

@@ -16,6 +16,7 @@ import { InstanceList } from "@/components/events/instance-list";
 import { expand } from "@/lib/recurrence";
 import { addMonths } from "date-fns";
 import { VenueNotesEditor } from "@/components/events/venue-notes-editor";
+import { VenueAddress } from "@/components/events/venue-address";
 import { SimilarEvents } from "@/components/events/similar-events";
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -62,12 +63,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const [carpoolOffers, carpoolRequests] = await Promise.all([
     db.carpoolOffer.findMany({
       where: { eventId: id },
-      include: { user: { select: { displayName: true } } },
+      include: { user: { select: { id: true, displayName: true } } },
       orderBy: { departureTime: "asc" },
     }),
     db.carpoolRequest.findMany({
       where: { eventId: id },
-      include: { user: { select: { displayName: true } } },
+      include: { user: { select: { id: true, displayName: true } } },
       orderBy: { preferredDepartureTime: "asc" },
     }),
   ]);
@@ -103,9 +104,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         </p>
         {event.location && (
           <>
-            <p className="text-sm">
-              <span className="font-medium">{event.location.venueName ?? "Location"}</span> · {event.location.address}
-            </p>
+            <VenueAddress address={event.location.address} venueName={event.location.venueName} />
             {me && <TravelEstimate eventId={event.id} />}
             {canEditVenue ? (
               <VenueNotesEditor locationId={event.location.id} initialNotes={event.location.venueNotes} />
@@ -135,8 +134,10 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       {me && event.status !== "CANCELLED" && (
         <CarpoolPanel
           eventId={event.id}
+          currentUserId={me.id}
           offers={carpoolOffers.map((o) => ({
             id: o.id,
+            userId: o.user.id,
             pickupArea: o.pickupArea,
             seatsAvailable: o.seatsAvailable,
             departureTime: o.departureTime.toISOString(),
@@ -144,6 +145,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           }))}
           requests={carpoolRequests.map((r) => ({
             id: r.id,
+            userId: r.user.id,
             pickupArea: r.pickupArea,
             preferredDepartureTime: r.preferredDepartureTime.toISOString(),
             userDisplayName: r.user.displayName,
@@ -169,9 +171,10 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       {isAdmin && (
         <div className="space-y-3 rounded-md border bg-muted/40 p-4">
           <h2 className="text-lg font-semibold">Admin tools</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link href={`/e/${event.id}/edit`}><Button variant="outline" size="sm">Edit event</Button></Link>
             <Link href={`/e/${event.id}/admin`}><Button variant="outline" size="sm">Attendees</Button></Link>
+            <Link href={`/e/new?dup=${event.id}`}><Button variant="outline" size="sm">Duplicate</Button></Link>
           </div>
           {event.rrule && (
             <div className="space-y-2">

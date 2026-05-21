@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition, useState } from "react";
+import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -42,17 +43,54 @@ export function RSVPButton({ eventId, initialStatus, initialPlusOnes = 0, allowP
             status === "CONDITIONAL" && condMode === "user" ? conditionalUser?.id ?? null : null,
         });
         setPosition(result.waitlistPosition);
+        toast.success(
+          result.status === "WAITLIST"
+            ? `Added to waitlist (#${result.waitlistPosition}). You'll be notified if a spot opens.`
+            : `RSVP saved as ${result.status.toLowerCase().replace("_", " ")}.`,
+        );
       } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Couldn't save RSVP");
         setError(e instanceof Error ? e.message : "Couldn't save RSVP");
       }
     });
   }
 
   function withdraw() {
+    // Capture prior state for undo.
+    const priorStatus = status;
+    const priorPlusOnes = plusOnes;
     start(async () => {
-      await withdrawRSVP(eventId);
-      setStatus("INTERESTED");
-      setPosition(null);
+      try {
+        await withdrawRSVP(eventId);
+        setStatus("INTERESTED");
+        setPosition(null);
+        toast.success("RSVP withdrawn.", {
+          action: {
+            label: "Undo",
+            onClick: () => {
+              start(async () => {
+                try {
+                  const r = await setRSVP({
+                    eventId,
+                    status: priorStatus,
+                    plusOneCount: priorPlusOnes,
+                    conditionalMinAttendees: null,
+                    conditionalOnUserId: null,
+                  });
+                  setStatus(r.status as typeof priorStatus);
+                  setPosition(r.waitlistPosition);
+                  toast.success("RSVP restored.");
+                } catch {
+                  toast.error("Couldn't restore RSVP.");
+                }
+              });
+            },
+          },
+          duration: 8000,
+        });
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Couldn't withdraw RSVP");
+      }
     });
   }
 

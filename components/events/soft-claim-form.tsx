@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,11 +12,16 @@ export function SoftClaimForm({ groupId }: { groupId: string }) {
 
   function onSubmit(form: FormData) {
     start(async () => {
-      await createSoftClaim({
-        groupId,
-        date: form.get("date") as string,
-        note: (form.get("note") as string) || undefined,
-      });
+      try {
+        await createSoftClaim({
+          groupId,
+          date: form.get("date") as string,
+          note: (form.get("note") as string) || undefined,
+        });
+        toast.success("Soft-claim added");
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Couldn't add soft-claim");
+      }
     });
   }
 

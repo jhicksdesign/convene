@@ -3,44 +3,48 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 
-interface User { id: string; displayName: string; avatarUrl: string | null }
+export interface EventOption {
+  id: string;
+  title: string;
+  groupName: string;
+  color: string;
+  startsAt: string;
+}
 
 interface Props {
-  value: User | null;
-  onChange: (u: User | null) => void;
+  value: EventOption | null;
+  onChange: (e: EventOption | null) => void;
   placeholder?: string;
 }
 
-/** Debounced search input for user-pickable people. */
-export function UserCombobox({ value, onChange, placeholder }: Props) {
+export function EventCombobox({ value, onChange, placeholder }: Props) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<User[]>([]);
+  const [results, setResults] = useState<EventOption[]>([]);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
-    if (query.length < 2) {
-      setResults([]);
-      return;
-    }
+    if (query.length < 2 && !open) return;
     timer.current = setTimeout(async () => {
-      const r = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+      const r = await fetch(`/api/events/search?q=${encodeURIComponent(query)}`);
       if (r.ok) {
         const j = await r.json();
-        setResults(j.results as User[]);
+        setResults(j.results as EventOption[]);
         setActiveIndex(0);
-        setOpen(true);
       }
-    }, 250);
+    }, 200);
     return () => { if (timer.current) clearTimeout(timer.current); };
-  }, [query]);
+  }, [query, open]);
 
   if (value) {
     return (
-      <div className="flex items-center gap-2 rounded-md border px-2 py-1 text-sm">
-        <span className="flex-1 truncate">{value.displayName}</span>
+      <div className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: value.color }} />
+        <span className="flex-1 truncate">
+          {value.title} <span className="text-muted-foreground">· {value.groupName}</span>
+        </span>
         <button onClick={() => onChange(null)} className="text-xs text-muted-foreground hover:text-foreground" aria-label="Clear selection">
           ×
         </button>
@@ -70,36 +74,39 @@ export function UserCombobox({ value, onChange, placeholder }: Props) {
       <Input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder={placeholder ?? "Search users…"}
-        onFocus={() => results.length > 0 && setOpen(true)}
+        onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={onKeyDown}
+        placeholder={placeholder ?? "Search events…"}
         role="combobox"
         aria-expanded={open}
-        aria-controls="user-listbox"
-        aria-autocomplete="list"
+        aria-controls="event-listbox"
       />
       {open && results.length > 0 && (
         <ul
-          id="user-listbox"
+          id="event-listbox"
           role="listbox"
-          className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-md"
+          className="absolute left-0 right-0 top-full z-20 mt-1 max-h-72 overflow-auto rounded-md border bg-popover shadow-md"
         >
-          {results.map((u, i) => (
+          {results.map((e, i) => (
             <li
-              key={u.id}
+              key={e.id}
               role="option"
               aria-selected={i === activeIndex}
-              className={`cursor-pointer px-3 py-1.5 text-sm ${i === activeIndex ? "bg-accent" : ""}`}
+              className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm ${i === activeIndex ? "bg-accent" : ""}`}
               onMouseEnter={() => setActiveIndex(i)}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                onChange(u);
+              onMouseDown={(ev) => {
+                ev.preventDefault();
+                onChange(e);
                 setQuery("");
                 setOpen(false);
               }}
             >
-              {u.displayName}
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: e.color }} />
+              <span className="flex-1 truncate">
+                {e.title}
+                <span className="ml-2 text-xs text-muted-foreground">{e.groupName} · {new Date(e.startsAt).toLocaleDateString()}</span>
+              </span>
             </li>
           ))}
         </ul>

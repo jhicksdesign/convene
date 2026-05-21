@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Bell, Calendar, Map, Users, User } from "lucide-react";
+import { Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { signOut } from "@/lib/auth";
 import { TopBarSearch } from "@/components/layout/search";
 import { NotificationBadge } from "@/components/layout/notification-badge";
+import { TopNavLinks } from "@/components/layout/nav-links";
 
 async function signOutAction() {
   "use server";
@@ -23,19 +24,7 @@ export async function TopBar() {
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="font-semibold tracking-tight">Convene</Link>
-          {user && (
-            <nav className="hidden gap-4 text-sm md:flex">
-              <Link href="/calendar" className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-                <Calendar className="h-4 w-4" /> Calendar
-              </Link>
-              <Link href="/map" className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-                <Map className="h-4 w-4" /> Map
-              </Link>
-              <Link href="/groups" className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-                <Users className="h-4 w-4" /> Groups
-              </Link>
-            </nav>
-          )}
+          {user && <TopNavLinks />}
         </div>
         <div className="flex items-center gap-2">
           {user && <TopBarSearch />}

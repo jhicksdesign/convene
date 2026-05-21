@@ -38,8 +38,13 @@ export async function statusForNewGoingLocked(
   eventId: string,
   plusOnes: number,
 ): Promise<"GOING" | "WAITLIST"> {
-  const event = await tx.event.findUnique({ where: { id: eventId }, select: { capacity: true } });
+  const event = await tx.event.findUnique({
+    where: { id: eventId },
+    select: { capacity: true, useWaitlist: true },
+  });
   if (!event?.capacity) return "GOING";
+  // Soft-limit (useWaitlist=false): capacity is informational; never auto-waitlist.
+  if (!event.useWaitlist) return "GOING";
   const going = await goingCountTx(tx, eventId);
   return going + 1 + plusOnes > event.capacity ? "WAITLIST" : "GOING";
 }
