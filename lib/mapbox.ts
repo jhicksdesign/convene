@@ -10,15 +10,42 @@ export interface GeocodeResult {
   lng: number;
 }
 
-export async function geocode(query: string): Promise<GeocodeResult | null> {
-  if (!TOKEN || !query) return null;
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${TOKEN}&limit=1`;
+export interface GeocodeOptions {
+  /** Max results to return (Mapbox max is 10). Default 5 for autocomplete. */
+  limit?: number;
+  /** Bias results near this point — admin's home or group region. */
+  proximity?: { lat: number; lng: number };
+}
+
+/**
+ * Geocode a free-text query into one or more candidate addresses.
+ * Returns up to `opts.limit` ranked matches; the picker uses these for
+ * an autocomplete dropdown, while one-shot callers (location upsert)
+ * just take the first.
+ */
+export async function geocode(query: string, opts: GeocodeOptions = {}): Promise<GeocodeResult[]> {
+  if (!TOKEN || !query) return [];
+  const limit = Math.min(Math.max(opts.limit ?? 5, 1), 10);
+  const params = new URLSearchParams({
+    access_token: TOKEN,
+    limit: String(limit),
+    autocomplete: "true",
+  });
+  if (opts.proximity) {
+    params.set("proximity", `${opts.proximity.lng},${opts.proximity.lat}`);
+  }
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params}`;
   const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) return null;
+  if (!res.ok) return [];
   const data = await res.json();
-  const f = data.features?.[0];
-  if (!f) return null;
-  return { address: f.place_name, lng: f.center[0], lat: f.center[1] };
+  const features = (data.features ?? []) as Array<{ place_name: string; center: [number, number] }>;
+  return features.map((f) => ({ address: f.place_name, lng: f.center[0], lat: f.center[1] }));
+}
+
+/** Single best match — convenience for legacy callers that only need one. */
+export async function geocodeOne(query: string): Promise<GeocodeResult | null> {
+  const [first] = await geocode(query, { limit: 1 });
+  return first ?? null;
 }
 
 export interface DirectionsResult {

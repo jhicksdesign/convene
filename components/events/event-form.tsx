@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { ConflictWarning, type ConflictReportSerialized } from "@/components/events/conflict-warning";
 import { DateTimeDurationPicker } from "@/components/events/datetime-duration-picker";
 import { RecurrencePicker } from "@/components/events/recurrence-picker";
+import { LocationPicker, type LocationValue } from "@/components/events/location-picker";
 import { createEvent, updateEvent } from "@/app/_actions/events";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,10 @@ export interface EventFormInitial {
   allowPlusOnes?: boolean;
   useWaitlist?: boolean;
   flyerImageUrl?: string | null;
+  /** Initial location for edit + duplicate flows. */
+  location?: LocationValue;
+  /** Map proximity bias when creating fresh — passed from the page (admin's home or group region). */
+  mapCenter?: { lat: number; lng: number };
 }
 
 type CostKind = "free" | "fixed" | "varies" | "pwyc";
@@ -86,6 +91,8 @@ export function EventForm({ ownableGroups, initial }: { ownableGroups: Group[]; 
   const [hasCapacity, setHasCapacity] = useState(initial?.capacity != null);
   const [capacity, setCapacity] = useState<string>(initial?.capacity ? String(initial.capacity) : "");
 
+  const [location, setLocation] = useState<LocationValue>(initial?.location ?? { kind: "none" });
+
   function toggleFlag(f: string) {
     setFlags((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
   }
@@ -109,6 +116,7 @@ export function EventForm({ ownableGroups, initial }: { ownableGroups: Group[]; 
           allowPlusOnes,
           useWaitlist: hasCapacity ? useWaitlist : false,
           coHostGroupIds: [],
+          location,
         };
         const result = initial?.id
           ? { eventId: initial.id, conflicts: await updateEvent(initial.id, payload) }
@@ -193,6 +201,15 @@ export function EventForm({ ownableGroups, initial }: { ownableGroups: Group[]; 
           }}
         />
         <RecurrencePicker startDate={startsAt} rrule={rrule} onChange={setRrule} />
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Where</h3>
+        <LocationPicker
+          value={location}
+          onChange={setLocation}
+          fallbackCenter={initial?.mapCenter}
+        />
       </div>
 
       <div className="space-y-4">

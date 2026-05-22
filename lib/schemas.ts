@@ -18,6 +18,44 @@ export const accessibilityFlag = z.enum([
   "kid_friendly",
 ]);
 
+export const eventLocationVisibility = z.enum(["PUBLIC", "RSVP_CONFIRMED", "DAY_OF"]);
+
+// Discriminated-union location payload used by event create/update.
+// `pin`  — specific address (geocoded); de-dupes by address.
+// `area` — circle (center + radius in meters); never de-duped.
+// `tbd`  — no Location row created; only general-area text on the Event.
+// `none` — clear the location on update.
+export const eventLocationInput = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("pin"),
+    address: z.string().min(2).max(500),
+    venueName: z.string().max(120).optional().nullable(),
+    venueNotes: z.string().max(10_000).optional().nullable(),
+    lat: z.number(),
+    lng: z.number(),
+    visibility: eventLocationVisibility.default("PUBLIC"),
+    generalArea: z.string().max(120).optional().nullable(),
+  }),
+  z.object({
+    kind: z.literal("area"),
+    lat: z.number(),
+    lng: z.number(),
+    radius: z.number().int().min(25).max(50_000),
+    venueName: z.string().max(120).optional().nullable(),
+    venueNotes: z.string().max(10_000).optional().nullable(),
+    visibility: eventLocationVisibility.default("PUBLIC"),
+    generalArea: z.string().max(120).optional().nullable(),
+  }),
+  z.object({
+    kind: z.literal("tbd"),
+    generalArea: z.string().max(120),
+    visibility: eventLocationVisibility.default("RSVP_CONFIRMED"),
+  }),
+  z.object({
+    kind: z.literal("none"),
+  }),
+]);
+
 export const groupCreate = z.object({
   name: z.string().min(2).max(80),
   slug: z.string().min(2).max(64).regex(/^[a-z0-9-]+$/).optional(),
@@ -37,6 +75,7 @@ const eventBase = z.object({
   startsAt: z.coerce.date(),
   endsAt: z.coerce.date(),
   locationId: z.string().optional().nullable(),
+  location: eventLocationInput.optional(),
   capacity: z.coerce.number().int().positive().optional().nullable(),
   cost: z.string().max(40).optional().nullable(),
   scope: eventScope.default("MEMBERS"),
@@ -122,6 +161,7 @@ export const locationUpsert = z.object({
   address: z.string().min(2),
   lat: z.number(),
   lng: z.number(),
+  radius: z.number().int().min(25).max(50_000).optional().nullable(),
   venueName: z.string().max(120).optional().nullable(),
   venueNotes: z.string().max(10_000).optional().nullable(),
 });
@@ -140,3 +180,5 @@ export type AdminNoteCreate = z.infer<typeof adminNoteCreate>;
 export type CarpoolOfferCreate = z.infer<typeof carpoolOfferCreate>;
 export type CarpoolRequestCreate = z.infer<typeof carpoolRequestCreate>;
 export type LocationUpsert = z.infer<typeof locationUpsert>;
+export type EventLocationInput = z.infer<typeof eventLocationInput>;
+export type EventLocationVisibility = z.infer<typeof eventLocationVisibility>;

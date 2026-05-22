@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin, requireUser } from "@/lib/auth-helpers";
-import { eventCreate, eventUpdate } from "@/lib/schemas";
+import { eventCreate, eventUpdate, type EventLocationInput } from "@/lib/schemas";
 import { detectConflicts, type ConflictReport } from "@/lib/conflict-detection";
 import { dispatch } from "@/lib/notifications";
 import { renderGenericEmail } from "@/lib/email/templates/generic";
@@ -25,6 +25,73 @@ async function assertAdminOfOwningOrCoHost(eventId: string, userId: string): Pro
   if (!m) throw new Error("Forbidden");
 }
 
+/**
+ * Resolve a LocationPicker payload into the event-side persistence shape.
+ * Returns the locationId to attach (creating/upserting the Location row) along
+ * with the per-event policy fields. Returns `null` for the locationId when the
+ * payload is `tbd` or `none` — those modes either have no point at all or only
+ * the general-area text.
+ */
+async function resolveLocationInput(input: EventLocationInput | undefined): Promise<{
+  locationId: string | null;
+  locationVisibility: "PUBLIC" | "RSVP_CONFIRMED" | "DAY_OF";
+  locationGeneralArea: string | null;
+} | null> {
+  if (!input) return null; // caller said nothing — leave the existing relation untouched
+
+  if (input.kind === "none") {
+    return { locationId: null, locationVisibility: "PUBLIC", locationGeneralArea: null };
+  }
+
+  if (input.kind === "tbd") {
+    return {
+      locationId: null,
+      locationVisibility: input.visibility,
+      locationGeneralArea: input.generalArea ?? null,
+    };
+  }
+
+  if (input.kind === "pin") {
+    const loc = await db.location.upsert({
+      where: { address: input.address },
+      create: {
+        address: input.address,
+        lat: input.lat,
+        lng: input.lng,
+        radius: null,
+        venueName: input.venueName ?? null,
+        venueNotes: input.venueNotes ?? null,
+      },
+      update: {
+        // Don't clobber lat/lng on dedupe — the canonical row's geocode wins.
+        ...(input.venueName !== undefined && input.venueName !== null && { venueName: input.venueName }),
+      },
+    });
+    return {
+      locationId: loc.id,
+      locationVisibility: input.visibility,
+      locationGeneralArea: input.generalArea ?? null,
+    };
+  }
+
+  // input.kind === "area"
+  const loc = await db.location.create({
+    data: {
+      address: null,
+      lat: input.lat,
+      lng: input.lng,
+      radius: input.radius,
+      venueName: input.venueName ?? null,
+      venueNotes: input.venueNotes ?? null,
+    },
+  });
+  return {
+    locationId: loc.id,
+    locationVisibility: input.visibility,
+    locationGeneralArea: input.generalArea ?? null,
+  };
+}
+
 /** Create or move an event; also returns the conflict report (UI renders). */
 export async function createEvent(input: unknown): Promise<{ eventId: string; conflicts: ConflictReport }> {
   const data = eventCreate.parse(input);
@@ -34,6 +101,8 @@ export async function createEvent(input: unknown): Promise<{ eventId: string; co
   await refuseIfFresherThan(admin.id, 60, "New accounts can't create events for the first hour.");
   await rateLimitForUser(admin.id, "event-create", 20, 60 * 60_000, "Too many events created — try again in an hour.");
 
+  const resolvedLocation = await resolveLocationInput(data.location);
+
   const event = await db.event.create({
     data: {
       title: data.title,
@@ -41,7 +110,11 @@ export async function createEvent(input: unknown): Promise<{ eventId: string; co
       owningGroupId: data.owningGroupId,
       startsAt: data.startsAt,
       endsAt: data.endsAt,
-      locationId: data.locationId ?? null,
+      // Prefer the LocationPicker payload; fall back to the legacy locationId
+      // for callers that haven't been migrated yet (e.g., older LLM extract paths).
+      locationId: resolvedLocation ? resolvedLocation.locationId : data.locationId ?? null,
+      locationVisibility: resolvedLocation?.locationVisibility ?? "PUBLIC",
+      locationGeneralArea: resolvedLocation?.locationGeneralArea ?? null,
       capacity: data.capacity ?? null,
       cost: data.cost ?? null,
       scope: data.scope,
@@ -75,6 +148,8 @@ export async function updateEvent(eventId: string, input: unknown): Promise<Conf
   await assertAdminOfOwningOrCoHost(eventId, user.id);
   const data = eventUpdate.parse(input);
 
+  const resolvedLocation = data.location !== undefined ? await resolveLocationInput(data.location) : null;
+
   const updated = await db.event.update({
     where: { id: eventId },
     data: {
@@ -83,6 +158,11 @@ export async function updateEvent(eventId: string, input: unknown): Promise<Conf
       ...(data.startsAt !== undefined && { startsAt: data.startsAt }),
       ...(data.endsAt !== undefined && { endsAt: data.endsAt }),
       ...(data.locationId !== undefined && { locationId: data.locationId }),
+      ...(resolvedLocation && {
+        locationId: resolvedLocation.locationId,
+        locationVisibility: resolvedLocation.locationVisibility,
+        locationGeneralArea: resolvedLocation.locationGeneralArea,
+      }),
       ...(data.capacity !== undefined && { capacity: data.capacity }),
       ...(data.cost !== undefined && { cost: data.cost }),
       ...(data.scope !== undefined && { scope: data.scope }),

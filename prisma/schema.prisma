@@ -194,6 +194,13 @@ model Event {
   startsAt           DateTime
   endsAt             DateTime
   locationId         String?
+  // §12.1 location uplift — Pin / Area / TBD modes.
+  // locationVisibility gates whether the exact address is shown to the viewer.
+  // locationGeneralArea is the public-facing fuzzy text ("Northeast Heights")
+  // shown when the exact address is hidden, or when the event has no Location
+  // row at all (TBD mode).
+  locationVisibility   EventLocationVisibility @default(PUBLIC)
+  locationGeneralArea  String?
   capacity           Int?
   cost               String?
   scope              EventScope  @default(MEMBERS)
@@ -240,6 +247,16 @@ enum EventStatus {
   TENTATIVE
   CONFIRMED
   CANCELLED
+}
+
+/// Per-event address-reveal policy. PUBLIC always shows exact location;
+/// RSVP_CONFIRMED hides exact coords/address until the viewer has a GOING
+/// or WAITLIST RSVP; DAY_OF reveals to anyone who can see the event 24h
+/// before start.
+enum EventLocationVisibility {
+  PUBLIC
+  RSVP_CONFIRMED
+  DAY_OF
 }
 
 model EventCoHost {
@@ -439,9 +456,15 @@ model Appeal {
 
 model Location {
   id         String   @id @default(cuid())
-  address    String   @unique
+  // Nullable for "Area" mode locations (a circle on the map with no street
+  // address — park meets, trailheads, "near the duck pond"). Pin-mode rows
+  // still de-dupe by address (Postgres treats NULLs as distinct so multiple
+  // area rows coexist).
+  address    String?  @unique
   lat        Float
   lng        Float
+  // Meters. null = pin (specific address). Non-null = area circle radius.
+  radius     Int?
   venueName  String?
   venueNotes String?
   createdAt  DateTime @default(now())

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { circlePolygon } from "@/lib/geo";
 
 interface Pin {
   eventId: string;
@@ -10,6 +11,17 @@ interface Pin {
   lat: number;
   lng: number;
   color: string;
+}
+
+interface Area {
+  eventId: string;
+  title: string;
+  lat: number;
+  lng: number;
+  radius: number;
+  color: string;
+  /** When true the area represents a privacy-hidden event — coarsened coords + dashed outline. */
+  hidden?: boolean;
 }
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
@@ -27,11 +39,13 @@ const DEFAULT_ZOOM = ENV_ZOOM ? Number(ENV_ZOOM) : 10;
 
 export function MapView({
   pins,
+  areas = [],
   centerLat = DEFAULT_LAT,
   centerLng = DEFAULT_LNG,
   zoom = DEFAULT_ZOOM,
 }: {
   pins: Pin[];
+  areas?: Area[];
   centerLat?: number;
   centerLng?: number;
   zoom?: number;
@@ -55,9 +69,37 @@ export function MapView({
       zoom: safeZoom,
     });
     mapRef.current = map;
+
+    map.on("load", () => {
+      // Area-event source + two layers (fill + outline). Outline is dashed
+      // for hidden events so viewers know the location is approximate.
+      map.addSource("areas", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: "areas-fill",
+        type: "fill",
+        source: "areas",
+        paint: {
+          "fill-color": ["coalesce", ["get", "color"], "#C04E22"],
+          "fill-opacity": ["case", ["==", ["get", "hidden"], true], 0.10, 0.18],
+        },
+      });
+      map.addLayer({
+        id: "areas-stroke",
+        type: "line",
+        source: "areas",
+        paint: {
+          "line-color": ["coalesce", ["get", "color"], "#C04E22"],
+          "line-width": 1.5,
+          "line-opacity": 0.85,
+          "line-dasharray": ["case", ["==", ["get", "hidden"], true], ["literal", [2, 2]], ["literal", [1, 0]]],
+        },
+      });
+    });
+
     return () => { map.remove(); };
   }, [safeLat, safeLng, safeZoom]);
 
+  // Pins.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -83,6 +125,48 @@ export function MapView({
     else mapInstance.once("load", addPins);
     return () => { markers.forEach((m) => m.remove()); };
   }, [pins]);
+
+  // Areas (circles).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const apply = () => {
+      const source = map.getSource("areas") as mapboxgl.GeoJSONSource | undefined;
+      if (!source) return;
+      const features = areas.map((a) => {
+        const poly = circlePolygon(a.lat, a.lng, a.radius);
+        return {
+          ...poly,
+          properties: { eventId: a.eventId, title: a.title, color: a.color, hidden: !!a.hidden },
+        };
+      });
+      source.setData({ type: "FeatureCollection", features });
+    };
+    if (map.isStyleLoaded()) apply();
+    else map.once("load", apply);
+  }, [areas]);
+
+  // Click handler on area fills → popup linking to the event.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const handler = (e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      const props = f.properties as { eventId?: string; title?: string } | null;
+      if (!props?.eventId) return;
+      new mapboxgl.Popup({ offset: 8 })
+        .setLngLat(e.lngLat)
+        .setHTML(`<a href="/e/${props.eventId}" style="font-weight:600">${props.title ?? "Event"}</a>`)
+        .addTo(map);
+    };
+    map.on("click", "areas-fill", handler);
+    map.on("mouseenter", "areas-fill", () => { map.getCanvas().style.cursor = "pointer"; });
+    map.on("mouseleave", "areas-fill", () => { map.getCanvas().style.cursor = ""; });
+    return () => {
+      map.off("click", "areas-fill", handler);
+    };
+  }, []);
 
   if (!TOKEN) {
     return <div className="rounded-md border bg-muted p-4 text-sm text-muted-foreground">Set NEXT_PUBLIC_MAPBOX_TOKEN to enable the map.</div>;

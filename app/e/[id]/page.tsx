@@ -16,8 +16,9 @@ import { InstanceList } from "@/components/events/instance-list";
 import { expand } from "@/lib/recurrence";
 import { addMonths } from "date-fns";
 import { VenueNotesEditor } from "@/components/events/venue-notes-editor";
-import { VenueAddress } from "@/components/events/venue-address";
+import { LocationDisplay } from "@/components/events/location-display";
 import { SimilarEvents } from "@/components/events/similar-events";
+import { exposedLocation } from "@/lib/event-location";
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -76,6 +77,19 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       }))
     : false;
 
+  // §12.1 — resolve what location data to actually show this viewer.
+  // Admins of the owning or co-hosting group always see the exact address;
+  // RSVP_CONFIRMED gates on the viewer's RSVP status; DAY_OF gates on time.
+  const exposed = exposedLocation(
+    {
+      startsAt: event.startsAt,
+      locationVisibility: event.locationVisibility,
+      locationGeneralArea: event.locationGeneralArea,
+      location: event.location,
+    },
+    { viewerRsvp: myRsvp?.status ?? null, isAdmin },
+  );
+
   return (
     <section className="relative mx-auto max-w-3xl space-y-6">
       <RealtimeSubscribe channels={[`event:${event.id}`, `group:${event.owningGroupId}`]} />
@@ -129,17 +143,53 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               {format(event.startsAt, "p")} – {format(event.endsAt, "p")}
             </span>
           </p>
-          {event.location && (
-            <div className="space-y-1">
-              <VenueAddress address={event.location.address} venueName={event.location.venueName} />
-              {me && <TravelEstimate eventId={event.id} />}
-              {canEditVenue ? (
-                <VenueNotesEditor locationId={event.location.id} initialNotes={event.location.venueNotes} />
-              ) : event.location.venueNotes ? (
-                <p className="whitespace-pre-wrap text-xs text-muted-foreground">{event.location.venueNotes}</p>
-              ) : null}
+          {exposed.kind !== "none" || exposed.generalArea ? (
+            <div className="space-y-2">
+              {exposed.kind === "pin" && (
+                <LocationDisplay
+                  kind="pin"
+                  address={exposed.address}
+                  venueName={exposed.venueName}
+                  lat={exposed.lat}
+                  lng={exposed.lng}
+                  ownerColor={event.owningGroup.color}
+                />
+              )}
+              {exposed.kind === "area" && (
+                <LocationDisplay
+                  kind="area"
+                  lat={exposed.lat}
+                  lng={exposed.lng}
+                  radius={exposed.radius}
+                  venueName={exposed.venueName}
+                  ownerColor={event.owningGroup.color}
+                />
+              )}
+              {exposed.kind === "hidden" && (
+                <LocationDisplay
+                  kind="hidden"
+                  generalArea={exposed.generalArea}
+                  revealsAt={exposed.revealsAt}
+                  reason={exposed.reason}
+                />
+              )}
+              {exposed.kind === "none" && exposed.generalArea && (
+                <LocationDisplay kind="none" generalArea={exposed.generalArea} />
+              )}
+              {/* Travel estimate only makes sense once the exact location is visible. */}
+              {me && (exposed.kind === "pin" || exposed.kind === "area") && (
+                <TravelEstimate eventId={event.id} />
+              )}
+              {/* Venue notes — shown only when the exact location is exposed. */}
+              {event.location && (exposed.kind === "pin" || exposed.kind === "area") && (
+                canEditVenue ? (
+                  <VenueNotesEditor locationId={event.location.id} initialNotes={event.location.venueNotes} />
+                ) : event.location.venueNotes ? (
+                  <p className="whitespace-pre-wrap text-xs text-muted-foreground">{event.location.venueNotes}</p>
+                ) : null
+              )}
             </div>
-          )}
+          ) : null}
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
             {event.cost && (
               <p>
