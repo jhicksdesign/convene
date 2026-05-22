@@ -14,21 +14,10 @@ export default async function HomePage() {
   if (!user) {
     return (
       <section className="relative mx-auto max-w-3xl py-16 text-center sm:py-24">
-        {/* Atmospheric backdrop — fixed to viewport so the gradients span
-            the whole screen on wide monitors, not just the centered column.
-            Two-tone (warm sienna + cool dusk), gently drifting, with a
-            radial-mask vignette so orbs only glow at the edges and never
-            bleed under the hero text. */}
-        <div aria-hidden="true" className="orb-vignette pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-          <div
-            className="orb-a absolute -left-32 -top-32 h-[24rem] w-[24rem] rounded-full opacity-65 sm:-left-48 sm:-top-40 sm:h-[48rem] sm:w-[48rem] sm:opacity-100"
-            style={{ backgroundColor: "var(--color-orb-warm)", filter: "blur(90px)" }}
-          />
-          <div
-            className="orb-b absolute -right-32 -bottom-32 h-[24rem] w-[24rem] rounded-full opacity-55 sm:-right-48 sm:-bottom-40 sm:h-[44rem] sm:w-[44rem] sm:opacity-90"
-            style={{ backgroundColor: "var(--color-orb-cool)", filter: "blur(90px)" }}
-          />
-        </div>
+        {/* Atmospheric backdrop — corner-anchored radial gradients on a
+            single fixed full-viewport div. Stops are percentages so the
+            falloff adapts to any viewport shape; center stays clean. */}
+        <div aria-hidden="true" className="hero-atmosphere pointer-events-none fixed inset-0 -z-10" />
         <h1
           className="font-display text-5xl font-medium leading-none tracking-tight sm:text-7xl"
           style={{ fontVariationSettings: '"opsz" 144, "SOFT" 25' }}

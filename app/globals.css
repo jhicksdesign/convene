@@ -149,39 +149,35 @@ h3 { font-variation-settings: "opsz" 36,  "SOFT" 50; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   Hero orbs — slow ambient drift.
-   The motion is deliberately glacial (20-30s loop) so the page feels
-   "alive but unhurried" — not a moving CSS demo. Reduced-motion users
-   see them static.
+   Hero atmosphere — corner-anchored radial gradients.
+
+   We paint two radial gradients on a single fixed full-viewport div:
+   warm sienna in the top-left corner, cool dusk in the bottom-right.
+   Because the gradient stops are percentages (not pixel sizes), the
+   falloff naturally adapts to any viewport aspect ratio — square,
+   wide, tall — and the central reading area always stays clean.
+
+   No mask, no transform-positioned spans, no clipping edge cases.
    ───────────────────────────────────────────────────────────────────── */
 
-@keyframes orb-drift-a {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50%      { transform: translate3d(40px, 24px, 0); }
-}
-@keyframes orb-drift-b {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50%      { transform: translate3d(-32px, -28px, 0); }
-}
-@keyframes orb-drift-c {
-  0%, 100% { transform: translate3d(-50%, -50%, 0); }
-  50%      { transform: translate3d(calc(-50% + 24px), calc(-50% - 18px), 0); }
+.hero-atmosphere {
+  background-image:
+    radial-gradient(circle at top left,     var(--color-orb-warm) 0%, transparent 38%),
+    radial-gradient(circle at bottom right, var(--color-orb-cool) 0%, transparent 38%);
+  opacity: 0.42;
 }
 
-.orb-a { animation: orb-drift-a 22s ease-in-out infinite; }
-.orb-b { animation: orb-drift-b 28s ease-in-out infinite; }
-.orb-c { animation: orb-drift-c 34s ease-in-out infinite; }
-
-@media (prefers-reduced-motion: reduce) {
-  .orb-a, .orb-b, .orb-c { animation: none; }
+@media (max-width: 640px) {
+  .hero-atmosphere {
+    background-image:
+      radial-gradient(circle at top left,     var(--color-orb-warm) 0%, transparent 28%),
+      radial-gradient(circle at bottom right, var(--color-orb-cool) 0%, transparent 28%);
+    opacity: 0.50;
+  }
 }
 
-/* Vignette mask on the orb container — carves a transparent ellipse out
-   of the center so the corner orbs can never bleed under the hero text.
-   The orbs glow at the edges, the reading area stays cream/ink. */
-.orb-vignette {
-  -webkit-mask-image: radial-gradient(ellipse 55% 45% at center, transparent 0%, transparent 30%, black 80%);
-          mask-image: radial-gradient(ellipse 55% 45% at center, transparent 0%, transparent 30%, black 80%);
+@media (prefers-color-scheme: dark) {
+  .hero-atmosphere { opacity: 0.55; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────

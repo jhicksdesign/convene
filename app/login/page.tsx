@@ -19,19 +19,10 @@ export default function LoginPage() {
 
   return (
     <section className="relative -mx-4 -my-6 flex min-h-[calc(100vh-3.5rem)] items-center justify-center overflow-hidden px-4 py-12">
-      {/* Atmospheric backdrop — fixed to viewport, two-tone (warm + cool dusk),
-          gently drifting, with a radial-mask vignette so orbs only glow at the
-          edges and never bleed under the form. */}
-      <div aria-hidden="true" className="orb-vignette pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div
-          className="orb-a absolute -left-32 -top-24 h-[22rem] w-[22rem] rounded-full opacity-65 sm:-left-44 sm:-top-32 sm:h-[42rem] sm:w-[42rem] sm:opacity-100"
-          style={{ backgroundColor: "var(--color-orb-warm)", filter: "blur(90px)" }}
-        />
-        <div
-          className="orb-b absolute -right-32 -bottom-24 h-[22rem] w-[22rem] rounded-full opacity-55 sm:-right-44 sm:-bottom-32 sm:h-[38rem] sm:w-[38rem] sm:opacity-90"
-          style={{ backgroundColor: "var(--color-orb-cool)", filter: "blur(90px)" }}
-        />
-      </div>
+      {/* Atmospheric backdrop — corner-anchored radial gradients on a
+          single fixed full-viewport div. Stops are percentages so the
+          falloff adapts to any viewport shape; center stays clean. */}
+      <div aria-hidden="true" className="hero-atmosphere pointer-events-none fixed inset-0 -z-10" />
 
       <div className="relative w-full max-w-sm">
         <div className="mb-7 text-center">
