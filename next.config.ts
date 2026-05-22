@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.r2.dev" },
       { protocol: "https", hostname: "**.cloudflarestorage.com" },
       { protocol: "https", hostname: "imagedelivery.net" },
+      // R2 served behind a Cloudflare custom domain — set R2_PUBLIC_HOSTNAME
+      // (e.g. "media.convene.com") so next/image will accept it.
+      ...(process.env.R2_PUBLIC_HOSTNAME
+        ? [{ protocol: "https" as const, hostname: process.env.R2_PUBLIC_HOSTNAME }]
+        : []),
     ],
   },
 };
