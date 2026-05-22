@@ -115,15 +115,19 @@ export function DateTimeDurationPicker({ startsAt, endsAt, onChange }: Props) {
   }, [date, time, duration, multiDay, endDate, endTime]);
 
   // Local timezone label (American shortform when possible).
-  const tzLabel = useMemo(() => {
+  // Computed in an effect, not useMemo: SSR runs in UTC and the client runs
+  // in the user's zone, so the values differ and would cause a hydration
+  // mismatch. Initial state matches whatever SSR produced ("local").
+  const [tzLabel, setTzLabel] = useState<string>("local");
+  useEffect(() => {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const short = new Intl.DateTimeFormat("en-US", { timeZoneName: "short" })
         .formatToParts(new Date())
         .find((p) => p.type === "timeZoneName")?.value;
-      return short ?? tz;
+      setTzLabel(short ?? tz);
     } catch {
-      return "local";
+      // Keep "local" fallback.
     }
   }, []);
 

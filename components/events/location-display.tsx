@@ -150,7 +150,13 @@ function MapPreview({ lat, lng, radius, circleColor }: { lat: number; lng: numbe
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
+  // Mount gate — mapboxgl is browser-only, and we don't want SSR markup that
+  // doesn't match the post-hydration render.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
+    if (!mounted) return;
     if (!TOKEN || !ref.current || mapRef.current) return;
     mapboxgl.accessToken = TOKEN;
     const m = new mapboxgl.Map({
@@ -181,9 +187,11 @@ function MapPreview({ lat, lng, radius, circleColor }: { lat: number; lng: numbe
       }
     });
     return () => { m.remove(); mapRef.current = null; };
-  }, [lat, lng, radius, circleColor]);
+  }, [mounted, lat, lng, radius, circleColor]);
 
   if (!TOKEN) return null;
+  // Same skeleton dimensions during SSR / pre-mount so layout doesn't jump.
+  if (!mounted) return <div className="overflow-hidden rounded-lg border bg-muted/30" style={{ height: MAP_HEIGHT }} />;
 
   return (
     <div ref={ref} className="overflow-hidden rounded-lg border" style={{ height: MAP_HEIGHT }} />
