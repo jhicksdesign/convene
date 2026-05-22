@@ -24,6 +24,23 @@ COPY . .
 # Prisma client must be generated for the target platform.
 RUN npx prisma generate
 
+# Build-time public env vars. Next.js inlines NEXT_PUBLIC_* into the client
+# bundle at `next build` time, so they must be in the environment BEFORE
+# `npm run build` runs. Railway passes these in via --build-arg when the
+# matching variables exist in the service's Variables tab.
+ARG NEXT_PUBLIC_MAPBOX_TOKEN=""
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=""
+ARG NEXT_PUBLIC_DEFAULT_MAP_CENTER_LAT=""
+ARG NEXT_PUBLIC_DEFAULT_MAP_CENTER_LNG=""
+ARG NEXT_PUBLIC_DEFAULT_MAP_ZOOM=""
+ENV NEXT_PUBLIC_MAPBOX_TOKEN=$NEXT_PUBLIC_MAPBOX_TOKEN \
+    NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
+    NEXT_PUBLIC_DEFAULT_MAP_CENTER_LAT=$NEXT_PUBLIC_DEFAULT_MAP_CENTER_LAT \
+    NEXT_PUBLIC_DEFAULT_MAP_CENTER_LNG=$NEXT_PUBLIC_DEFAULT_MAP_CENTER_LNG \
+    NEXT_PUBLIC_DEFAULT_MAP_ZOOM=$NEXT_PUBLIC_DEFAULT_MAP_ZOOM
+
 # Next.js standalone build — drops a self-contained server in .next/standalone.
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
