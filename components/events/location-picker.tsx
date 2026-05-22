@@ -48,13 +48,21 @@ export type LocationValue =
     }
   | { kind: "none" };
 
+// Radius is a "meeting point spread" — how far to look around the dropped pin
+// to find your group. Real community meet-ups happen in the 10–100m range
+// (specific bench / pavilion / fountain). Anything beyond 250m stops being a
+// meeting point and starts being "somewhere in this neighborhood" — TBD mode
+// is the right tool for that. Custom is still available up to 5km for the
+// edge case of a wide outdoor zone.
 const RADIUS_PRESETS: { label: string; meters: number }[] = [
-  { label: "100m", meters: 100 },
-  { label: "250m", meters: 250 },
-  { label: "500m", meters: 500 },
-  { label: "1km", meters: 1000 },
-  { label: "2km", meters: 2000 },
+  { label: "10m",  meters: 10  },  // right at this spot
+  { label: "25m",  meters: 25  },  // look around this immediate area
+  { label: "50m",  meters: 50  },  // this section of the park
+  { label: "100m", meters: 100 },  // this corner / pavilion
+  { label: "250m", meters: 250 },  // a whole small park
 ];
+
+const DEFAULT_RADIUS = 50;
 
 const MODES: { id: "pin" | "area" | "tbd"; label: string; icon: typeof MapPin; hint: string }[] = [
   { id: "pin",  label: "Address",  icon: MapPin,    hint: "A specific street address." },
@@ -89,7 +97,7 @@ export function LocationPicker({ value, onChange, fallbackCenter }: Props) {
 
   const [areaLat, setAreaLat] = useState<number | null>(value?.kind === "area" ? value.lat : null);
   const [areaLng, setAreaLng] = useState<number | null>(value?.kind === "area" ? value.lng : null);
-  const [radius, setRadius] = useState<number>(value?.kind === "area" ? value.radius : 250);
+  const [radius, setRadius] = useState<number>(value?.kind === "area" ? value.radius : DEFAULT_RADIUS);
   const [customRadius, setCustomRadius] = useState<string>("");
 
   const [generalArea, setGeneralArea] = useState<string>(
@@ -247,17 +255,31 @@ export function LocationPicker({ value, onChange, fallbackCenter }: Props) {
     }
   }, [mode, pinLat, pinLng, areaLat, areaLng]);
 
-  // Center the map on the active point when it changes.
+  // Center + zoom the map on the active point when it (or the radius) changes.
+  // Zoom scales with the radius so a 10m circle isn't a single pixel and a
+  // 250m circle isn't off-screen. Formula: at zoom Z, 1px ≈ 156543·cos(lat)/2^Z
+  // meters; we aim for the circle to span ~70px (a comfortable fraction of the
+  // 280px-tall picker map).
   useEffect(() => {
     const m = mapRef.current;
     if (!m) return;
     let lat: number | null = null;
     let lng: number | null = null;
+    let zoom: number | undefined;
     if (mode === "pin") { lat = pinLat; lng = pinLng; }
-    if (mode === "area") { lat = areaLat; lng = areaLng; }
+    if (mode === "area") {
+      lat = areaLat; lng = areaLng;
+      if (lat != null) {
+        const desiredPx = 70;
+        const metersPerPx = (2 * radius) / desiredPx;
+        const lat0 = (lat * Math.PI) / 180;
+        const z = Math.log2((156543 * Math.cos(lat0)) / metersPerPx);
+        zoom = Math.min(19, Math.max(11, z));
+      }
+    }
     if (lat == null || lng == null) return;
-    m.easeTo({ center: [lng, lat], duration: 250 });
-  }, [mode, pinLat, pinLng, areaLat, areaLng]);
+    m.easeTo({ center: [lng, lat], duration: 350, ...(zoom != null && { zoom }) });
+  }, [mode, pinLat, pinLng, areaLat, areaLng, radius]);
 
   // Click-to-place in Area mode.
   useEffect(() => {
@@ -473,15 +495,15 @@ export function LocationPicker({ value, onChange, fallbackCenter }: Props) {
             <div className="flex items-center gap-1.5">
               <Input
                 type="number"
-                min={25}
-                max={50000}
-                step={25}
+                min={5}
+                max={5000}
+                step={5}
                 placeholder="Custom"
                 value={customRadius}
                 onChange={(e) => {
                   setCustomRadius(e.target.value);
                   const n = parseInt(e.target.value, 10);
-                  if (!Number.isNaN(n) && n >= 25 && n <= 50000) setRadius(n);
+                  if (!Number.isNaN(n) && n >= 5 && n <= 5000) setRadius(n);
                 }}
                 className="w-24"
               />

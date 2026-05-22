@@ -40,7 +40,11 @@ export const eventLocationInput = z.discriminatedUnion("kind", [
     kind: z.literal("area"),
     lat: z.number(),
     lng: z.number(),
-    radius: z.number().int().min(25).max(50_000),
+    // Radius represents "find your group within X meters of this pin" — a
+    // meeting-point spread, not a region. 5–5000m covers everything from
+    // "right at this bench" to "this section of a wide outdoor zone." Use
+    // TBD mode for anything bigger.
+    radius: z.number().int().min(5).max(5000),
     venueName: z.string().max(120).optional().nullable(),
     venueNotes: z.string().max(10_000).optional().nullable(),
     visibility: eventLocationVisibility.default("PUBLIC"),
@@ -161,7 +165,7 @@ export const locationUpsert = z.object({
   address: z.string().min(2),
   lat: z.number(),
   lng: z.number(),
-  radius: z.number().int().min(25).max(50_000).optional().nullable(),
+  radius: z.number().int().min(5).max(5000).optional().nullable(),
   venueName: z.string().max(120).optional().nullable(),
   venueNotes: z.string().max(10_000).optional().nullable(),
 });
