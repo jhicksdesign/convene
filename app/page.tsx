@@ -16,19 +16,17 @@ export default async function HomePage() {
       <section className="relative mx-auto max-w-3xl py-16 text-center sm:py-24">
         {/* Atmospheric backdrop — fixed to viewport so the gradients span
             the whole screen on wide monitors, not just the centered column.
-            Two-tone (warm sienna + cool dusk) and gently drifting. */}
-        <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+            Two-tone (warm sienna + cool dusk), gently drifting, with a
+            radial-mask vignette so orbs only glow at the edges and never
+            bleed under the hero text. */}
+        <div aria-hidden="true" className="orb-vignette pointer-events-none fixed inset-0 -z-10 overflow-hidden">
           <div
-            className="orb-a absolute -left-24 -top-24 h-[22rem] w-[22rem] rounded-full blur-3xl opacity-60 sm:-left-40 sm:h-[44rem] sm:w-[44rem] sm:opacity-100"
-            style={{ backgroundColor: "var(--color-orb-warm)", filter: "blur(80px)" }}
+            className="orb-a absolute -left-32 -top-32 h-[24rem] w-[24rem] rounded-full opacity-65 sm:-left-48 sm:-top-40 sm:h-[48rem] sm:w-[48rem] sm:opacity-100"
+            style={{ backgroundColor: "var(--color-orb-warm)", filter: "blur(90px)" }}
           />
           <div
-            className="orb-b absolute -right-24 -bottom-24 h-[22rem] w-[22rem] rounded-full blur-3xl opacity-50 sm:-right-40 sm:h-[40rem] sm:w-[40rem] sm:opacity-80"
-            style={{ backgroundColor: "var(--color-orb-cool)", filter: "blur(80px)" }}
-          />
-          <div
-            className="orb-c hidden sm:block absolute left-1/2 top-1/2 h-[26rem] w-[26rem] rounded-full"
-            style={{ backgroundColor: "var(--color-orb-warm)", opacity: 0.18, filter: "blur(100px)" }}
+            className="orb-b absolute -right-32 -bottom-32 h-[24rem] w-[24rem] rounded-full opacity-55 sm:-right-48 sm:-bottom-40 sm:h-[44rem] sm:w-[44rem] sm:opacity-90"
+            style={{ backgroundColor: "var(--color-orb-cool)", filter: "blur(90px)" }}
           />
         </div>
         <h1

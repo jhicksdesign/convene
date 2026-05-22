@@ -20,20 +20,16 @@ export default function LoginPage() {
   return (
     <section className="relative -mx-4 -my-6 flex min-h-[calc(100vh-3.5rem)] items-center justify-center overflow-hidden px-4 py-12">
       {/* Atmospheric backdrop — fixed to viewport, two-tone (warm + cool dusk),
-          gently drifting. Scaled down on mobile so it doesn't read as a single
-          orange wash. */}
-      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+          gently drifting, with a radial-mask vignette so orbs only glow at the
+          edges and never bleed under the form. */}
+      <div aria-hidden="true" className="orb-vignette pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div
-          className="orb-a absolute -left-24 -top-20 h-[20rem] w-[20rem] rounded-full opacity-65 sm:-left-40 sm:h-[40rem] sm:w-[40rem] sm:opacity-100"
-          style={{ backgroundColor: "var(--color-orb-warm)", filter: "blur(80px)" }}
+          className="orb-a absolute -left-32 -top-24 h-[22rem] w-[22rem] rounded-full opacity-65 sm:-left-44 sm:-top-32 sm:h-[42rem] sm:w-[42rem] sm:opacity-100"
+          style={{ backgroundColor: "var(--color-orb-warm)", filter: "blur(90px)" }}
         />
         <div
-          className="orb-b absolute -right-24 -bottom-20 h-[20rem] w-[20rem] rounded-full opacity-55 sm:-right-40 sm:h-[36rem] sm:w-[36rem] sm:opacity-90"
-          style={{ backgroundColor: "var(--color-orb-cool)", filter: "blur(80px)" }}
-        />
-        <div
-          className="orb-c hidden sm:block absolute left-1/2 top-1/2 h-[24rem] w-[24rem] rounded-full"
-          style={{ backgroundColor: "var(--color-orb-warm)", opacity: 0.16, filter: "blur(100px)" }}
+          className="orb-b absolute -right-32 -bottom-24 h-[22rem] w-[22rem] rounded-full opacity-55 sm:-right-44 sm:-bottom-32 sm:h-[38rem] sm:w-[38rem] sm:opacity-90"
+          style={{ backgroundColor: "var(--color-orb-cool)", filter: "blur(90px)" }}
         />
       </div>
 

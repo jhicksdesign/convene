@@ -176,6 +176,14 @@ h3 { font-variation-settings: "opsz" 36,  "SOFT" 50; }
   .orb-a, .orb-b, .orb-c { animation: none; }
 }
 
+/* Vignette mask on the orb container — carves a transparent ellipse out
+   of the center so the corner orbs can never bleed under the hero text.
+   The orbs glow at the edges, the reading area stays cream/ink. */
+.orb-vignette {
+  -webkit-mask-image: radial-gradient(ellipse 55% 45% at center, transparent 0%, transparent 30%, black 80%);
+          mask-image: radial-gradient(ellipse 55% 45% at center, transparent 0%, transparent 30%, black 80%);
+}
+
 /* ─────────────────────────────────────────────────────────────────────
    Calendar — cancelled-event hatching.
 
