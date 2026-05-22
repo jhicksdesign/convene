@@ -14,17 +14,34 @@ interface Pin {
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
+// `??` only catches null/undefined — but a Dockerfile ARG with no value
+// inlines as "" into the bundle, and Number("") is 0 (which would put
+// the map in the ocean off the coast of Africa). Use a truthy check so
+// empty strings fall through to the hardcoded fallback too.
+const ENV_LAT = process.env.NEXT_PUBLIC_DEFAULT_MAP_CENTER_LAT;
+const ENV_LNG = process.env.NEXT_PUBLIC_DEFAULT_MAP_CENTER_LNG;
+const ENV_ZOOM = process.env.NEXT_PUBLIC_DEFAULT_MAP_ZOOM;
+const DEFAULT_LAT = ENV_LAT ? Number(ENV_LAT) : 35.0844;
+const DEFAULT_LNG = ENV_LNG ? Number(ENV_LNG) : -106.6504;
+const DEFAULT_ZOOM = ENV_ZOOM ? Number(ENV_ZOOM) : 10;
+
 export function MapView({
   pins,
-  centerLat = Number(process.env.NEXT_PUBLIC_DEFAULT_MAP_CENTER_LAT ?? 35.0844),
-  centerLng = Number(process.env.NEXT_PUBLIC_DEFAULT_MAP_CENTER_LNG ?? -106.6504),
-  zoom = 10,
+  centerLat = DEFAULT_LAT,
+  centerLng = DEFAULT_LNG,
+  zoom = DEFAULT_ZOOM,
 }: {
   pins: Pin[];
   centerLat?: number;
   centerLng?: number;
   zoom?: number;
 }) {
+  // Final guard — if any caller passes NaN (or an env var slips through
+  // as a non-numeric string), fall back to ABQ rather than render at (0,0).
+  const safeLat = Number.isFinite(centerLat) ? centerLat : 35.0844;
+  const safeLng = Number.isFinite(centerLng) ? centerLng : -106.6504;
+  const safeZoom = Number.isFinite(zoom) ? zoom : 10;
+
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
@@ -34,12 +51,12 @@ export function MapView({
     const map = new mapboxgl.Map({
       container: ref.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [centerLng, centerLat],
-      zoom,
+      center: [safeLng, safeLat],
+      zoom: safeZoom,
     });
     mapRef.current = map;
     return () => { map.remove(); };
-  }, [centerLat, centerLng, zoom]);
+  }, [safeLat, safeLng, safeZoom]);
 
   useEffect(() => {
     const map = mapRef.current;
