@@ -92,8 +92,14 @@ export async function detectConflicts(event: InputEvent): Promise<ConflictReport
       },
       include: { group: { select: { name: true } } },
     }),
+    // Per-community scoping: pick up conventions owned by this group, and
+    // any global ones (groupId IS NULL) that the instance admin has set up.
     db.convention.findMany({
-      where: { startDate: { lte: windowEnd }, endDate: { gte: windowStart } },
+      where: {
+        startDate: { lte: windowEnd },
+        endDate: { gte: windowStart },
+        OR: [{ groupId: null }, { groupId: event.owningGroupId }],
+      },
     }),
   ]);
 

@@ -31,7 +31,13 @@ export async function suggestDates(
       select: { title: true, startsAt: true, endsAt: true, owningGroup: { select: { name: true } } },
       take: 200,
     }),
-    db.convention.findMany({ where: { endDate: { gte: new Date() } } }),
+    // Same scoping as conflict-detection: this group's conventions + globals.
+    db.convention.findMany({
+      where: {
+        endDate: { gte: new Date() },
+        OR: [{ groupId: null }, { groupId }],
+      },
+    }),
     db.group.findUnique({ where: { id: groupId }, select: { name: true } }),
   ]);
 
