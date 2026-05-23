@@ -60,6 +60,7 @@ export default async function GroupAdminPage({ params }: { params: Promise<{ slu
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Admin — {group.name}</h1>
         <div className="flex gap-2">
+          <Link href={`/g/${group.slug}/admin/vocabulary`}><Button variant="outline" size="sm">Vocabulary</Button></Link>
           <Link href={`/g/${group.slug}/admin/safety-network`}><Button variant="outline" size="sm">Safety network</Button></Link>
           <Link href={`/g/${group.slug}/admin/signals`}><Button variant="outline" size="sm">Signals</Button></Link>
         </div>
