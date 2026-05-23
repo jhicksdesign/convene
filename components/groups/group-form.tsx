@@ -46,6 +46,10 @@ export function GroupForm({ initial }: Props) {
           await createGroup(payload);
         }
       } catch (e: unknown) {
+        // redirect() throws a NEXT_REDIRECT signal; re-throw so Next handles it.
+        if (e instanceof Error && (e as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) {
+          throw e;
+        }
         toast.error(e instanceof Error ? e.message : "Couldn't save group");
       }
     });
