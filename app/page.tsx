@@ -22,7 +22,7 @@ export default async function HomePage() {
           className="font-display text-5xl font-medium leading-none tracking-tight sm:text-7xl"
           style={{ fontVariationSettings: '"opsz" 144, "SOFT" 25' }}
         >
-          Convene
+          Eventide
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
           The calendar where overlapping communities see what each other is doing —

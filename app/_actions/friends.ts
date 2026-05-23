@@ -23,7 +23,7 @@ export async function requestFriend(otherUserId: string) {
     userId: otherUserId,
     category: "FRIEND_REQUEST",
     title: `${user.displayName} wants to be friends`,
-    body: "Open Convene to accept or decline.",
+    body: "Open Eventide to accept or decline.",
     link: `/u/${user.id}`,
   });
 }

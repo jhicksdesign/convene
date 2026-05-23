@@ -94,7 +94,7 @@ export function PushSubscribe({ vapidPublicKey }: { vapidPublicKey: string | nul
     <div className="space-y-2 rounded-md border bg-muted/30 p-3">
       <p className="text-sm">
         <span className="font-medium">Browser push notifications</span> — get pinged in your OS for friend requests,
-        waitlist promotions, and event cancellations even when Convene's tab is closed.
+        waitlist promotions, and event cancellations even when Eventide's tab is closed.
       </p>
       {subscribed ? (
         <Button size="sm" variant="outline" onClick={unsubscribe} disabled={pending}>

@@ -54,7 +54,7 @@ function GenericEmail({ heading, body, cta }: Args) {
             </Section>
           )}
           <Text style={{ fontSize: 12, color: "#888", margin: "24px 0 0" }}>
-            Convene — community calendar.
+            Eventide — community calendar.
           </Text>
         </Container>
       </Body>

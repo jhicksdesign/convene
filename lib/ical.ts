@@ -48,7 +48,7 @@ export async function publicFeed(): Promise<string> {
     where: { scope: "PUBLIC", cancelledAt: null, endsAt: { gte: addDays(new Date(), -1) } },
     include: { location: { select: { address: true, venueName: true } } },
   });
-  return toCal("Convene — Public events", events as Eventish[]);
+  return toCal("Eventide — Public events", events as Eventish[]);
 }
 
 export async function groupFeed(slug: string): Promise<string | null> {
@@ -74,7 +74,7 @@ export async function groupFeed(slug: string): Promise<string | null> {
     },
     include: { location: { select: { address: true, venueName: true } } },
   });
-  return toCal(`Convene — ${group.name}`, events as Eventish[]);
+  return toCal(`Eventide — ${group.name}`, events as Eventish[]);
 }
 
 export async function userFeed(token: string): Promise<string | null> {
@@ -107,5 +107,5 @@ export async function userFeed(token: string): Promise<string | null> {
   for (const e of candidates) {
     if (await canSeeEvent(user.id, e)) visible.push(e as Eventish);
   }
-  return toCal(`Convene — ${user.displayName}`, visible);
+  return toCal(`Eventide — ${user.displayName}`, visible);
 }

@@ -26,7 +26,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Convene",
+  title: "Eventide",
   description: "The calendar where overlapping communities see what each other is doing.",
 };
 

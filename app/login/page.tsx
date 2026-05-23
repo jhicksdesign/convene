@@ -30,7 +30,7 @@ export default function LoginPage() {
             className="font-display text-6xl font-medium leading-none tracking-tight"
             style={{ fontVariationSettings: '"opsz" 144, "SOFT" 30' }}
           >
-            Convene
+            Eventide
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Sign in — we'll email you a magic link.

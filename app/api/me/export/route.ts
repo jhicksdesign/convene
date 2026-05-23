@@ -5,7 +5,7 @@ export async function GET() {
   return new Response(JSON.stringify(data, null, 2), {
     headers: {
       "Content-Type": "application/json",
-      "Content-Disposition": 'attachment; filename="convene-export.json"',
+      "Content-Disposition": 'attachment; filename="eventide-export.json"',
     },
   });
 }

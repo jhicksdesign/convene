@@ -15,10 +15,10 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: "Convene", body: event.data.text() };
+    payload = { title: "Eventide", body: event.data.text() };
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title || "Convene", {
+    self.registration.showNotification(payload.title || "Eventide", {
       body: payload.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",

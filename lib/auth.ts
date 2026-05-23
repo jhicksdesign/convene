@@ -145,7 +145,7 @@ export const authConfig: NextAuthConfig = {
       name: "Email",
       type: "email",
       maxAge: 15 * 60,
-      from: process.env.EMAIL_FROM ?? "Convene <noreply@example.com>",
+      from: process.env.EMAIL_FROM ?? "Eventide <noreply@example.com>",
       server: {},
       options: {},
       sendVerificationRequest: async ({ identifier, url }) => {
@@ -166,7 +166,7 @@ export const authConfig: NextAuthConfig = {
         }
         const { subject, html, text } = renderMagicLinkEmail({ url });
         await resend.emails.send({
-          from: process.env.EMAIL_FROM ?? "Convene <noreply@example.com>",
+          from: process.env.EMAIL_FROM ?? "Eventide <noreply@example.com>",
           to: identifier,
           subject,
           html,

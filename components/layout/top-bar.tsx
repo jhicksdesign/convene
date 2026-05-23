@@ -28,7 +28,7 @@ export async function TopBar() {
             className="font-display text-2xl font-medium leading-none tracking-tight text-foreground"
             style={{ fontVariationSettings: '"opsz" 36, "SOFT" 60' }}
           >
-            Convene
+            Eventide
           </Link>
           {user && <TopNavLinks />}
         </div>

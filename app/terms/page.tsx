@@ -6,7 +6,7 @@ export default function TermsPage() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">What you agree to</h2>
         <p>
-          You'll use Convene in good faith: don't impersonate others, don't post content
+          You'll use Eventide in good faith: don't impersonate others, don't post content
           that endangers community members, don't try to abuse rate limits or the LLM
           features, and don't try to discover information about other users beyond what
           the visibility settings expose.
@@ -39,7 +39,7 @@ export default function TermsPage() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Shutdown commitments</h2>
         <p>
-          If the operator chooses to shut Convene down, we commit to:
+          If the operator chooses to shut Eventide down, we commit to:
         </p>
         <ul className="list-disc pl-6">
           <li>60-day advance notice posted in-app and to all admins.</li>
@@ -55,7 +55,7 @@ export default function TermsPage() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">License</h2>
         <p>
-          Convene is licensed under the GNU AGPL-3.0. Forking is fine; closed-source
+          Eventide is licensed under the GNU AGPL-3.0. Forking is fine; closed-source
           SaaS forks are not.
         </p>
       </section>

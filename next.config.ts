@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   // our Docker image runs. Required for the Railway container deploy.
   output: "standalone",
 
+  experimental: {
+    authInterrupts: true,
+  },
+
   serverExternalPackages: ["@prisma/client", "@aws-sdk/client-s3"],
 
   images: {

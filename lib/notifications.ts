@@ -67,7 +67,7 @@ export async function dispatch(args: DispatchArgs): Promise<void> {
     if (resend && user) {
       try {
         await resend.emails.send({
-          from: process.env.EMAIL_FROM ?? "Convene <noreply@example.com>",
+          from: process.env.EMAIL_FROM ?? "Eventide <noreply@example.com>",
           to: user.email,
           subject: args.email.subject,
           html: args.email.html,

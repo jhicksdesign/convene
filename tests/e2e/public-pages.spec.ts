@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Public routes", () => {
   test("home renders the marketing pitch for logged-out users", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Convene" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Eventide" })).toBeVisible();
     // There are intentionally two Sign in entry points on the logged-out home
     // (top-bar + hero CTA). Scope to the hero so the test is unambiguous.
     await expect(page.getByRole("main").getByRole("link", { name: /sign in/i })).toBeVisible();

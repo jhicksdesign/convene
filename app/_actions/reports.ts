@@ -89,7 +89,7 @@ export async function transitionReport(reportId: string, next: "ACKNOWLEDGED" | 
     userId: r.reporterId,
     category: "REPORT_STATUS",
     title: `Your report is now ${next}`,
-    body: resolutionNote ?? "Open Convene for details.",
+    body: resolutionNote ?? "Open Eventide for details.",
     link: `/reports/${reportId}`,
   });
 }
