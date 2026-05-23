@@ -9,14 +9,24 @@ export const rsvpStatus = z.enum(["GOING", "INTERESTED", "MAYBE", "NOT_GOING", "
 export const groupVisibility = z.enum(["PUBLIC_LISTED", "MEMBERS_VISIBLE", "INVITE_ONLY"]);
 export const joinMode = z.enum(["OPEN", "REQUEST", "INVITE_ONLY"]);
 
-export const accessibilityFlag = z.enum([
+// Universal accessibility flags every community gets by default. Groups can
+// add their own (e.g. "suit_friendly_restrooms" for fursuit communities) via
+// the per-group accessibilityPalette stored on Group.
+export const UNIVERSAL_ACCESSIBILITY_FLAGS = [
   "wheelchair_accessible",
   "sensory_friendly",
-  "suit_friendly_restrooms",
   "alcohol_free",
   "smoke_free",
   "kid_friendly",
-]);
+] as const;
+
+// Validation: accept any slug-shaped string. Groups define their own palette,
+// so the canonical enum lives in `Group.accessibilityPalette`, not here.
+export const accessibilityFlag = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9_]+$/, "lowercase, digits, and underscores only");
 
 export const eventLocationVisibility = z.enum(["PUBLIC", "RSVP_CONFIRMED", "DAY_OF"]);
 
@@ -71,6 +81,26 @@ export const groupCreate = z.object({
 });
 
 export const groupUpdate = groupCreate.partial();
+
+// Event-defaults JSON shape stored on Group.eventDefaults. Each field optional —
+// the form merges defined keys onto a new event payload.
+export const groupEventDefaults = z.object({
+  scope: eventScope.optional(),
+  capacity: z.number().int().positive().nullable().optional(),
+  cost: z.string().max(40).nullable().optional(),
+  allowPlusOnes: z.boolean().optional(),
+  useWaitlist: z.boolean().optional(),
+  accessibilityFlags: z.array(accessibilityFlag).optional(),
+});
+
+export const groupVocabularyUpdate = z.object({
+  tagPalette: z.array(z.string().min(1).max(40).regex(/^[a-z0-9-]+$/, "lowercase, digits, hyphens only")).max(100),
+  accessibilityPalette: z.array(accessibilityFlag).max(40),
+  eventDefaults: groupEventDefaults.nullable(),
+});
+
+export type GroupEventDefaults = z.infer<typeof groupEventDefaults>;
+export type GroupVocabularyUpdate = z.infer<typeof groupVocabularyUpdate>;
 
 const eventBase = z.object({
   title: z.string().min(2).max(200),

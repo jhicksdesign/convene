@@ -100,6 +100,14 @@ model Group {
   safetyNetworkOptIn Boolean         @default(false)
   signalsOptIn       Boolean         @default(false)
   tentativeExpiryDays Int            @default(14)
+  // Multi-tenant vocabulary — each community curates its own.
+  // tagPalette: suggested tags shown in the TagInput autocomplete.
+  // accessibilityPalette: list of flag keys this community uses (e.g. wheelchair_accessible).
+  // eventDefaults: prefill values applied to new events in this group
+  //   (shape: { scope, capacity, cost, allowPlusOnes, useWaitlist, accessibilityFlags }).
+  tagPalette           String[]      @default([])
+  accessibilityPalette String[]      @default([])
+  eventDefaults        Json?
   createdAt          DateTime        @default(now())
 
   memberships    Membership[]
@@ -508,6 +516,10 @@ model CarpoolRequest {
 
 model Convention {
   id        String   @id @default(cuid())
+  // null = global (visible to every group); non-null = scoped to a specific community.
+  // Conflict detection includes a convention when groupId IS NULL OR groupId IN (event's
+  // owning group + safety-network groups).
+  groupId   String?
   name      String
   startDate DateTime
   endDate   DateTime
@@ -516,6 +528,7 @@ model Convention {
   createdAt DateTime @default(now())
 
   @@index([startDate])
+  @@index([groupId])
 }
 
 // ─── Notifications (§14) ────────────────────────────────────────────

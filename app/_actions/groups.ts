@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin, requireUser, adminGroupIds } from "@/lib/auth-helpers";
-import { groupCreate, groupUpdate } from "@/lib/schemas";
+import { groupCreate, groupUpdate, groupVocabularyUpdate, UNIVERSAL_ACCESSIBILITY_FLAGS } from "@/lib/schemas";
 import { slugify } from "@/lib/utils";
 import { withRowLock } from "@/lib/tx";
 import { bump } from "@/lib/realtime";
@@ -26,6 +26,10 @@ export async function createGroup(input: unknown) {
       logoUrl: data.logoUrl ?? null,
       visibility: data.visibility,
       joinMode: data.joinMode,
+      // Seed the accessibility palette with the universal set so the filter
+      // chips work out of the box. Admins curate further via /admin/vocabulary.
+      accessibilityPalette: [...UNIVERSAL_ACCESSIBILITY_FLAGS],
+      tagPalette: [],
       memberships: { create: { userId: user.id, role: "ADMIN" } },
     },
   });
@@ -37,6 +41,21 @@ export async function updateGroup(groupId: string, input: unknown) {
   await requireAdmin(groupId);
   const data = groupUpdate.parse(input);
   await db.group.update({ where: { id: groupId }, data });
+  revalidatePath(`/g`);
+}
+
+export async function updateGroupVocabulary(groupId: string, input: unknown) {
+  await requireAdmin(groupId);
+  const data = groupVocabularyUpdate.parse(input);
+  await db.group.update({
+    where: { id: groupId },
+    data: {
+      tagPalette: data.tagPalette,
+      accessibilityPalette: data.accessibilityPalette,
+      // Prisma Json field — pass through; null clears defaults.
+      eventDefaults: data.eventDefaults ?? undefined,
+    },
+  });
   revalidatePath(`/g`);
 }
 
