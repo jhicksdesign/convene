@@ -29,7 +29,7 @@ Schema:
   "cost": string|null,
   "capacity": int|null,
   "tags": string[],
-  "accessibilityFlags": (subset of: ["wheelchair_accessible","sensory_friendly","suit_friendly_restrooms","alcohol_free","smoke_free","kid_friendly"]),
+  "accessibilityFlags": (subset of: ["wheelchair_accessible","sensory_friendly","alcohol_free","smoke_free","kid_friendly"]),
   "confidence": object mapping each field name to a 0..1 number
 }
 

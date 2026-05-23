@@ -5,15 +5,14 @@ import { Badge } from "@/components/ui/badge";
 
 interface GroupChip { id: string; name: string; color: string }
 
+import { UNIVERSAL_ACCESSIBILITY_FLAGS } from "@/lib/schemas";
+
 const RSVP_OPTIONS = ["GOING", "INTERESTED", "MAYBE"] as const;
-const A11Y_OPTIONS = [
-  "wheelchair_accessible",
-  "sensory_friendly",
-  "suit_friendly_restrooms",
-  "alcohol_free",
-  "smoke_free",
-  "kid_friendly",
-] as const;
+// Calendar/map filter chips show the universal accessibility flags. Per-group
+// custom flags (e.g. "fursuit_friendly") are filter-able via tag chips on the
+// group's own events page; surfacing every community's vocabulary here would
+// produce a noisy chip row across mixed groups.
+const A11Y_OPTIONS = UNIVERSAL_ACCESSIBILITY_FLAGS;
 
 interface Props {
   groups: GroupChip[];

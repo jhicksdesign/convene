@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { EventForm, type EventFormInitial } from "@/components/events/event-form";
+import { EventForm, type EventFormInitial, type OwnableGroup } from "@/components/events/event-form";
 import { AssistantSidebar } from "@/components/events/assistant-sidebar";
-
-interface Group { id: string; name: string }
 
 /**
  * Pairs the EventForm with the NL assistant sidebar. Clicking a suggestion
@@ -14,7 +12,7 @@ export function EventFormWithAssistant({
   ownableGroups,
   initial,
 }: {
-  ownableGroups: Group[];
+  ownableGroups: OwnableGroup[];
   initial?: EventFormInitial;
 }) {
   const [seed, setSeed] = useState<EventFormInitial>(initial ?? {});

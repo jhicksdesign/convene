@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireUser, isAdminOf } from "@/lib/auth-helpers";
 import { EventForm } from "@/components/events/event-form";
 import type { LocationValue } from "@/components/events/location-picker";
+import { loadOwnableGroups } from "@/lib/ownable-groups";
 
 export default async function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,10 +53,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
   const isAdmin = (await Promise.all(groupIds.map((g) => isAdminOf(me.id, g)))).some(Boolean);
   if (!isAdmin) forbidden();
 
-  const ownableGroups = await db.group.findMany({
-    where: { memberships: { some: { userId: me.id, role: "ADMIN" } } },
-    select: { id: true, name: true },
-  });
+  const ownableGroups = await loadOwnableGroups(me.id);
 
   return (
     <section className="mx-auto max-w-3xl space-y-4">

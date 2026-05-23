@@ -3,12 +3,10 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { EventForm, type EventFormInitial } from "@/components/events/event-form";
+import { EventForm, type EventFormInitial, type OwnableGroup } from "@/components/events/event-form";
 import type { ExtractedEvent } from "@/lib/llm/extract-event";
 
-interface Group { id: string; name: string }
-
-export function ImageToEvent({ ownableGroups }: { ownableGroups: Group[] }) {
+export function ImageToEvent({ ownableGroups }: { ownableGroups: OwnableGroup[] }) {
   const [file, setFile] = useState<File | null>(null);
   const [pending, start] = useTransition();
   const [extracted, setExtracted] = useState<ExtractedEvent | null>(null);

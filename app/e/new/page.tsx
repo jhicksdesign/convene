@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { requireUser, adminGroupIds } from "@/lib/auth-helpers";
+import { requireUser } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { EventFormWithAssistant } from "@/components/events/event-form-with-assistant";
 import { Button } from "@/components/ui/button";
 import type { EventFormInitial } from "@/components/events/event-form";
+import { loadOwnableGroups } from "@/lib/ownable-groups";
 
 function toLocalIso(d: Date): string {
   const off = d.getTimezoneOffset();
@@ -16,8 +17,8 @@ export default async function NewEventPage({
   searchParams: Promise<{ dup?: string }>;
 }) {
   const me = await requireUser();
-  const ids = await adminGroupIds(me.id);
-  const groups = await db.group.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
+  const groups = await loadOwnableGroups(me.id);
+  const adminGroupIdSet = new Set(groups.map((g) => g.id));
 
   if (groups.length === 0) {
     return (
@@ -35,7 +36,7 @@ export default async function NewEventPage({
       where: { id: sp.dup },
       include: { coHosts: { select: { groupId: true } } },
     });
-    if (src && ids.includes(src.owningGroupId)) {
+    if (src && adminGroupIdSet.has(src.owningGroupId)) {
       // Default the duplicate's start to next week, same weekday + same time-of-day.
       const newStart = new Date(src.startsAt);
       newStart.setDate(newStart.getDate() + 7);

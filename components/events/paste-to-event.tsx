@@ -4,12 +4,10 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { EventForm, type EventFormInitial } from "@/components/events/event-form";
+import { EventForm, type EventFormInitial, type OwnableGroup } from "@/components/events/event-form";
 import type { ExtractedEvent } from "@/lib/llm/extract-event";
 
-interface Group { id: string; name: string }
-
-export function PasteToEvent({ ownableGroups }: { ownableGroups: Group[] }) {
+export function PasteToEvent({ ownableGroups }: { ownableGroups: OwnableGroup[] }) {
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
   const [extracted, setExtracted] = useState<ExtractedEvent | null>(null);
