@@ -4,11 +4,12 @@ import { redirect } from "next/navigation";
 import { forbidden, unauthorized } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { hasRealEmail } from "@/lib/identity";
 import type { Role, User } from "@prisma/client";
 
 export type AuthedUser = Pick<
   User,
-  "id" | "email" | "displayName" | "avatarUrl" | "timezone" | "deletedAt"
+  "id" | "email" | "emailVerified" | "displayName" | "avatarUrl" | "timezone" | "deletedAt"
 >;
 
 export async function getCurrentUser(): Promise<AuthedUser | null> {
@@ -16,7 +17,7 @@ export async function getCurrentUser(): Promise<AuthedUser | null> {
   if (!session?.user?.id) return null;
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, displayName: true, avatarUrl: true, timezone: true, deletedAt: true },
+    select: { id: true, email: true, emailVerified: true, displayName: true, avatarUrl: true, timezone: true, deletedAt: true },
   });
   if (!user || user.deletedAt) return null;
   return user;
@@ -57,6 +58,31 @@ export async function isMemberOf(userId: string, groupId: string): Promise<boole
 export async function requireMember(groupId: string): Promise<AuthedUser> {
   const u = await requireUser();
   if (!(await isMemberOf(u.id, groupId))) forbidden();
+  return u;
+}
+
+/**
+ * Server-action gate: throws when the user hasn't verified a real (non-
+ * placeholder) email yet. Callers that catch this should surface a polite
+ * "Add email to continue" prompt rather than a generic error toast.
+ */
+export class EmailRequiredError extends Error {
+  code = "EMAIL_REQUIRED" as const;
+  constructor(action: string) {
+    super(`Verify your email before you can ${action}.`);
+  }
+}
+
+export async function assertVerifiedEmail(action: string): Promise<AuthedUser> {
+  const u = await requireUser();
+  if (!hasRealEmail(u)) throw new EmailRequiredError(action);
+  return u;
+}
+
+/** Page-level gate: redirects to /settings/email if no verified email. */
+export async function requireVerifiedEmailOrRedirect(reason: string): Promise<AuthedUser> {
+  const u = await requireUser();
+  if (!hasRealEmail(u)) redirect(`/settings/email?need=${encodeURIComponent(reason)}`);
   return u;
 }
 

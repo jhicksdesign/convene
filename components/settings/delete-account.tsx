@@ -19,13 +19,13 @@ import {
 } from "@/components/ui/dialog";
 import { softDeleteAccount } from "@/app/_actions/account";
 
-export function DeleteAccount({ email }: { email: string }) {
+export function DeleteAccount({ confirmValue, label }: { confirmValue: string; label: string }) {
   const [confirm, setConfirm] = useState("");
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  const matches = confirm.trim().toLowerCase() === email.toLowerCase();
+  const matches = confirm.trim().toLowerCase() === confirmValue.toLowerCase();
 
   function onDelete() {
     if (!matches) return;
@@ -60,13 +60,13 @@ export function DeleteAccount({ email }: { email: string }) {
         </DialogHeader>
         <div className="space-y-2 py-2">
           <Label htmlFor="delete-confirm" className="text-sm">
-            Type your email <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{email}</code> to confirm:
+            Type your {label} <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{confirmValue}</code> to confirm:
           </Label>
           <Input
             id="delete-confirm"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            placeholder={email}
+            placeholder={confirmValue}
             autoComplete="off"
             spellCheck={false}
           />

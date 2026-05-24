@@ -1,14 +1,63 @@
-// Auth.js v5 — magic link via Resend.
+// Auth.js v5 — Google / Telegram / Discord OAuth + magic-link email.
 // All auth checks in the app go through lib/auth-helpers.ts;
 // this file is config only.
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Discord from "next-auth/providers/discord";
+import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Adapter, AdapterUser } from "@auth/core/adapters";
 import { Resend } from "resend";
 import { db } from "@/lib/db";
 import { renderMagicLinkEmail } from "@/lib/email/templates/magic-link";
 import { rateLimit, RateLimitError } from "@/lib/rate-limit";
+import { placeholderEmailFor } from "@/lib/identity";
+
+// Telegram OIDC profile claims (from the id_token).
+// See https://core.telegram.org/widgets/login#openid-connect
+interface TelegramProfile {
+  sub: string;
+  iss: string;
+  aud: string;
+  iat: number;
+  exp: number;
+  // Telegram-specific user fields, returned in the id_token when the matching
+  // scope was requested. Telegram doesn't expose email — use a placeholder.
+  id?: number | string;
+  name?: string;
+  preferred_username?: string;
+  picture?: string;
+  phone_number?: string;
+}
+
+// Telegram doesn't publish a /userinfo endpoint, so we tell Auth.js to read all
+// user claims directly from the id_token instead of attempting an HTTP fetch.
+function TelegramProvider() {
+  return {
+    id: "telegram",
+    name: "Telegram",
+    type: "oidc" as const,
+    issuer: "https://oauth.telegram.org",
+    clientId: process.env.TELEGRAM_CLIENT_ID,
+    clientSecret: process.env.TELEGRAM_CLIENT_SECRET,
+    authorization: {
+      params: {
+        // openid is required; profile = name/username/picture;
+        // telegram:bot_access lets our bot DM the user (used by notifications).
+        scope: "openid profile telegram:bot_access",
+      },
+    },
+    profile(p: TelegramProfile) {
+      const sub = String(p.sub ?? p.id ?? "");
+      return {
+        id: sub,
+        email: placeholderEmailFor(sub),
+        emailVerified: null,
+        name: p.name ?? p.preferred_username ?? "Telegram user",
+        image: p.picture ?? null,
+      };
+    },
+  };
+}
 
 // Lazy-init the Resend client (see Dockerfile build-time considerations).
 let _resend: Resend | null = null;
@@ -118,6 +167,18 @@ export const authConfig: NextAuthConfig = {
   session: { strategy: "database", maxAge: 30 * 24 * 60 * 60, updateAge: 24 * 60 * 60 },
   pages: { signIn: "/login", verifyRequest: "/verify", newUser: "/onboarding" },
   providers: [
+    ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
+      ? [
+          Google({
+            clientId: process.env.AUTH_GOOGLE_ID,
+            clientSecret: process.env.AUTH_GOOGLE_SECRET,
+            // Google's default profile() returns the standard fields we need.
+          }),
+        ]
+      : []),
+    ...(process.env.TELEGRAM_CLIENT_ID && process.env.TELEGRAM_CLIENT_SECRET
+      ? [TelegramProvider()]
+      : []),
     ...(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET
       ? [
           Discord({

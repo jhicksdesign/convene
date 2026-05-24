@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { Resend } from "resend";
 import type { NotificationCategory } from "@prisma/client";
 import { pushTo } from "@/lib/web-push";
+import { hasRealEmail } from "@/lib/identity";
+import { sendBotMessage } from "@/lib/telegram-bot";
 
 // Lazy-init: see lib/auth.ts for the same pattern + rationale.
 let _resend: Resend | null = null;
@@ -61,10 +63,14 @@ export async function dispatch(args: DispatchArgs): Promise<void> {
   const wantEmail = channels.email ?? def.email;
 
   let emailedAt: Date | null = null;
+  let emailDelivered = false;
   if (wantEmail && args.email) {
+    const user = await db.user.findUnique({
+      where: { id: args.userId },
+      select: { email: true, emailVerified: true },
+    });
     const resend = getResend();
-    const user = await db.user.findUnique({ where: { id: args.userId }, select: { email: true } });
-    if (resend && user) {
+    if (resend && user && hasRealEmail(user)) {
       try {
         await resend.emails.send({
           from: process.env.EMAIL_FROM ?? "Eventide <noreply@example.com>",
@@ -74,9 +80,26 @@ export async function dispatch(args: DispatchArgs): Promise<void> {
           text: args.email.text,
         });
         emailedAt = new Date();
+        emailDelivered = true;
       } catch (err) {
         console.error("[notifications.dispatch] email failed", err);
       }
+    }
+  }
+
+  // Telegram bot DM as the outbound fallback when email isn't available.
+  // Falls back when the user has no verified email OR when the email send
+  // didn't make it out (Resend unset, transient failure, etc.).
+  if (wantEmail && !emailDelivered) {
+    const tg = await db.account.findFirst({
+      where: { userId: args.userId, provider: "telegram" },
+      select: { providerAccountId: true },
+    });
+    if (tg) {
+      const link = args.link
+        ? `${process.env.AUTH_URL ?? ""}${args.link.startsWith("/") ? args.link : `/${args.link}`}`
+        : undefined;
+      await sendBotMessage(tg.providerAccountId, `${args.title}\n${args.body}`, link);
     }
   }
 

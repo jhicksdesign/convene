@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireUser, requireAdmin } from "@/lib/auth-helpers";
+import { requireUser, requireAdmin, assertVerifiedEmail } from "@/lib/auth-helpers";
 import { dispatch } from "@/lib/notifications";
 import { withRowLock } from "@/lib/tx";
 import { bump } from "@/lib/realtime";
@@ -24,6 +24,8 @@ export async function joinOrRequest(groupId: string, message?: string) {
   }
 
   if (group.joinMode === "REQUEST") {
+    // Private groups should be able to reach approved members by email.
+    await assertVerifiedEmail("request to join this group");
     const req = await db.joinRequest.upsert({
       where: { groupId_userId: { groupId, userId: user.id } },
       create: { groupId, userId: user.id, message: message ?? null, status: "PENDING" },

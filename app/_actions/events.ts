@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireAdmin, requireUser } from "@/lib/auth-helpers";
+import { requireAdmin, requireUser, assertVerifiedEmail } from "@/lib/auth-helpers";
 import { eventCreate, eventUpdate, type EventLocationInput } from "@/lib/schemas";
 import { detectConflicts, type ConflictReport } from "@/lib/conflict-detection";
 import { dispatch } from "@/lib/notifications";
@@ -94,6 +94,7 @@ async function resolveLocationInput(input: EventLocationInput | undefined): Prom
 
 /** Create or move an event; also returns the conflict report (UI renders). */
 export async function createEvent(input: unknown): Promise<{ eventId: string; conflicts: ConflictReport }> {
+  await assertVerifiedEmail("create events");
   const data = eventCreate.parse(input);
   const admin = await requireAdmin(data.owningGroupId);
 

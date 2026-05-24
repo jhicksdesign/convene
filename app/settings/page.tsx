@@ -18,6 +18,7 @@ export default async function SettingsPage() {
     <section className="mx-auto max-w-2xl space-y-8">
       <nav className="flex flex-wrap gap-3 text-sm">
         <Link href="/settings" className="font-medium underline">Profile</Link>
+        <Link href="/settings/email" className="text-muted-foreground hover:underline">Email</Link>
         <Link href="/settings/privacy" className="text-muted-foreground hover:underline">Privacy</Link>
         <Link href="/settings/notifications" className="text-muted-foreground hover:underline">Notifications</Link>
         <Link href="/settings/friends" className="text-muted-foreground hover:underline">Friends</Link>

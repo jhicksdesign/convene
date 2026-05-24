@@ -1,9 +1,9 @@
-import { requireUser } from "@/lib/auth-helpers";
+import { requireVerifiedEmailOrRedirect } from "@/lib/auth-helpers";
 import { PasteToEvent } from "@/components/events/paste-to-event";
 import { loadOwnableGroups } from "@/lib/ownable-groups";
 
 export default async function FromTextPage() {
-  const me = await requireUser();
+  const me = await requireVerifiedEmailOrRedirect("create-event");
   const groups = await loadOwnableGroups(me.id);
   return (
     <section className="mx-auto max-w-3xl space-y-4">

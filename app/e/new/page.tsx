@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth-helpers";
+import { requireUser, requireVerifiedEmailOrRedirect } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { EventFormWithAssistant } from "@/components/events/event-form-with-assistant";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ export default async function NewEventPage({
 }: {
   searchParams: Promise<{ dup?: string }>;
 }) {
-  const me = await requireUser();
+  const me = await requireVerifiedEmailOrRedirect("create-event");
   const groups = await loadOwnableGroups(me.id);
   const adminGroupIdSet = new Set(groups.map((g) => g.id));
 
