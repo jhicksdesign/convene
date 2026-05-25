@@ -65,7 +65,6 @@ Add a new section when you make a choice that future-you would have to re-derive
 **2026-05.** Auth.js v5 with Resend magic links is the primary path. Discord OAuth is added when env vars are present.
 
 - **Why magic link first?** Lower friction (no provider account required), works for groups whose members aren't on Discord, keeps Convene viable as a self-hostable scene-neutral app.
-- **Why Discord second?** The launch community (NM furry) already coordinates on Discord. One-click sign-in there is high-signal.
 
 ## ADR-010 — Open source under AGPL-3.0
 

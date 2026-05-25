@@ -9,7 +9,6 @@ interface Bundle {
   telegram: string;
   discord: string;
   twitter: string;
-  fa: string;
   email: string;
 }
 
@@ -46,10 +45,9 @@ export function AnnouncementGenerator({ eventId }: { eventId: string }) {
             <TabsTrigger value="telegram">Telegram</TabsTrigger>
             <TabsTrigger value="discord">Discord</TabsTrigger>
             <TabsTrigger value="twitter">Twitter</TabsTrigger>
-            <TabsTrigger value="fa">FA</TabsTrigger>
             <TabsTrigger value="email">Email</TabsTrigger>
           </TabsList>
-          {(["telegram","discord","twitter","fa","email"] as const).map((k) => (
+          {(["telegram","discord","twitter","email"] as const).map((k) => (
             <TabsContent key={k} value={k}>
               <div className="space-y-2">
                 <Textarea value={bundle[k]} readOnly rows={k === "email" ? 12 : 6} />

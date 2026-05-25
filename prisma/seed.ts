@@ -1,8 +1,6 @@
 // Seed convention calendar (PRD §6.7).
 //
-// Convene is multi-tenant. The original repo seeded a global furry-convention
-// calendar, but for a generic instance there's no universal set of "conventions
-// every community cares about" — book-club admins don't need Anthrocon dates.
+// Convene is multi-tenant.
 //
 // New posture:
 //   - No global conventions by default.

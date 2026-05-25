@@ -10,7 +10,7 @@ export const groupVisibility = z.enum(["PUBLIC_LISTED", "MEMBERS_VISIBLE", "INVI
 export const joinMode = z.enum(["OPEN", "REQUEST", "INVITE_ONLY"]);
 
 // Universal accessibility flags every community gets by default. Groups can
-// add their own (e.g. "suit_friendly_restrooms" for fursuit communities) via
+// add their own via
 // the per-group accessibilityPalette stored on Group.
 export const UNIVERSAL_ACCESSIBILITY_FLAGS = [
   "wheelchair_accessible",

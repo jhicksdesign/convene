@@ -106,7 +106,7 @@ export function VocabularyEditor({ initial }: { initial: Initial }) {
           <h2 className="font-display text-xl font-medium tracking-tight">Accessibility flags</h2>
           <p className="text-sm text-muted-foreground">
             Which accessibility flags this community uses on events. The universal set is
-            pre-loaded; add your own as needed (e.g. <code className="rounded bg-muted px-1 py-0.5 text-xs">fursuit_friendly</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">leashed_pets_ok</code>).
+            pre-loaded; add your own as needed (e.g. <code className="rounded bg-muted px-1 py-0.5 text-xs">wheelchair_accessible</code>, <code className="rounded bg-muted px-1 py-0.5 text-xs">leashed_pets_ok</code>).
           </p>
         </div>
         <TagInput
