@@ -29,33 +29,38 @@ interface TelegramProfile {
   phone_number?: string;
 }
 
-// Telegram doesn't publish a /userinfo endpoint. openid-client (used by
-// Auth.js v5's "oidc" provider type under the hood) validates the discovery
-// document and throws if userinfo_endpoint is missing — so we sidestep the
-// discovery flow entirely with type: "oauth", explicit endpoints, and
-// idToken: true. Auth.js then verifies the id_token via the JWKS and passes
-// its claims directly to profile() — no userinfo HTTP call ever happens.
+// Telegram doesn't publish a /userinfo endpoint. openid-client (under Auth.js
+// v5's "oidc" provider) validates the discovery doc and throws when
+// userinfo_endpoint is missing. We use type: "oauth" with explicit endpoints
+// + a custom `userinfo.request` that returns claims decoded from the id_token
+// JWT payload — no HTTP fetch to userinfo, no discovery validation.
+//
+// The `as never` cast bypasses Auth.js v5's strict OAuthConfig typing — the
+// provider works correctly at runtime; we just don't have a clean type to
+// hand it since the official types assume userinfo is a URL.
 function TelegramProvider() {
   return {
     id: "telegram",
     name: "Telegram",
-    type: "oauth" as const,
-    issuer: "https://oauth.telegram.org",
+    type: "oauth",
     clientId: process.env.TELEGRAM_CLIENT_ID,
     clientSecret: process.env.TELEGRAM_CLIENT_SECRET,
     authorization: {
       url: "https://oauth.telegram.org/auth",
       params: {
-        // openid required; profile = name/username/picture;
-        // telegram:bot_access lets the bot DM users (used by notifications).
         scope: "openid profile telegram:bot_access",
         response_type: "code",
       },
     },
     token: "https://oauth.telegram.org/token",
-    jwks_endpoint: "https://oauth.telegram.org/.well-known/jwks.json",
-    idToken: true,
-    checks: ["pkce", "state"],
+    userinfo: {
+      async request({ tokens }: { tokens: { id_token?: string } }) {
+        if (!tokens.id_token) throw new Error("Telegram returned no id_token");
+        const payloadB64 = tokens.id_token.split(".")[1];
+        const json = Buffer.from(payloadB64, "base64url").toString("utf8");
+        return JSON.parse(json);
+      },
+    },
     profile(p: TelegramProfile) {
       const sub = String(p.sub ?? p.id ?? "");
       return {
@@ -66,7 +71,7 @@ function TelegramProvider() {
         image: p.picture ?? null,
       };
     },
-  };
+  } as never;
 }
 
 // Lazy-init the Resend client (see Dockerfile build-time considerations).
