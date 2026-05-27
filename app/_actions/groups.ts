@@ -99,6 +99,8 @@ export async function approveJoinRequest(reqId: string) {
     db.joinRequest.update({ where: { id: reqId }, data: { status: "APPROVED" } }),
     db.membership.create({ data: { groupId: r.groupId, userId: r.userId } }),
   ]);
+  revalidatePath("/notifications");
+  revalidatePath("/g");
 }
 
 export async function declineJoinRequest(reqId: string) {
@@ -106,6 +108,8 @@ export async function declineJoinRequest(reqId: string) {
   if (!r) throw new Error("Not found");
   await requireAdmin(r.groupId);
   await db.joinRequest.update({ where: { id: reqId }, data: { status: "DECLINED" } });
+  revalidatePath("/notifications");
+  revalidatePath("/g");
 }
 
 export async function proposeSafetyNetwork(groupAId: string, groupBId: string) {
