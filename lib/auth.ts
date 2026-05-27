@@ -43,6 +43,10 @@ function TelegramProvider() {
     id: "telegram",
     name: "Telegram",
     type: "oauth",
+    // Required by Auth.js v5's InvalidEndpoints validation — it accepts EITHER
+    // a string `issuer` OR a string `userinfo` URL. Our userinfo is a custom
+    // function (no HTTP), so `issuer` is what satisfies the check.
+    issuer: "https://oauth.telegram.org",
     clientId: process.env.TELEGRAM_CLIENT_ID,
     clientSecret: process.env.TELEGRAM_CLIENT_SECRET,
     authorization: {
