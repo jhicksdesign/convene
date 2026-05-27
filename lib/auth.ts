@@ -46,6 +46,20 @@ function TelegramProvider() {
         scope: "openid profile telegram:bot_access",
       },
     },
+    // Telegram doesn't ship a userinfo endpoint; openid-client (used by Auth.js
+    // v5 under the hood) treats userinfo as required and throws otherwise.
+    // Override with a function that decodes claims from the id_token JWT
+    // payload directly, so no HTTP call is attempted.
+    userinfo: {
+      async request({ tokens }: { tokens: { id_token?: string } }) {
+        if (!tokens.id_token) throw new Error("Telegram OIDC returned no id_token");
+        const payloadB64 = tokens.id_token.split(".")[1];
+        // JWT payloads are base64url-encoded (RFC 7515) — Node 16+ accepts
+        // "base64url" directly on Buffer.from.
+        const json = Buffer.from(payloadB64, "base64url").toString("utf8");
+        return JSON.parse(json);
+      },
+    },
     profile(p: TelegramProfile) {
       const sub = String(p.sub ?? p.id ?? "");
       return {
