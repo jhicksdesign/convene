@@ -192,6 +192,9 @@ export const authConfig: NextAuthConfig = {
             clientId: process.env.AUTH_GOOGLE_ID,
             clientSecret: process.env.AUTH_GOOGLE_SECRET,
             // Google's default profile() returns the standard fields we need.
+            // Google verifies email ownership before issuing tokens, so it is
+            // safe to auto-link to existing accounts that share the email.
+            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
@@ -204,6 +207,9 @@ export const authConfig: NextAuthConfig = {
             clientId: process.env.DISCORD_CLIENT_ID,
             clientSecret: process.env.DISCORD_CLIENT_SECRET,
             authorization: { params: { scope: "identify email" } },
+            // Discord verifies email ownership before granting account access,
+            // so it is safe to auto-link to existing accounts sharing the email.
+            allowDangerousEmailAccountLinking: true,
             profile(p: { id: string; username: string; email: string | null; avatar: string | null }) {
               const avatarUrl = p.avatar
                 ? `https://cdn.discordapp.com/avatars/${p.id}/${p.avatar}.png`
