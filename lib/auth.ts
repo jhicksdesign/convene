@@ -29,37 +29,33 @@ interface TelegramProfile {
   phone_number?: string;
 }
 
-// Telegram doesn't publish a /userinfo endpoint, so we tell Auth.js to read all
-// user claims directly from the id_token instead of attempting an HTTP fetch.
+// Telegram doesn't publish a /userinfo endpoint. openid-client (used by
+// Auth.js v5's "oidc" provider type under the hood) validates the discovery
+// document and throws if userinfo_endpoint is missing — so we sidestep the
+// discovery flow entirely with type: "oauth", explicit endpoints, and
+// idToken: true. Auth.js then verifies the id_token via the JWKS and passes
+// its claims directly to profile() — no userinfo HTTP call ever happens.
 function TelegramProvider() {
   return {
     id: "telegram",
     name: "Telegram",
-    type: "oidc" as const,
+    type: "oauth" as const,
     issuer: "https://oauth.telegram.org",
     clientId: process.env.TELEGRAM_CLIENT_ID,
     clientSecret: process.env.TELEGRAM_CLIENT_SECRET,
     authorization: {
+      url: "https://oauth.telegram.org/auth",
       params: {
-        // openid is required; profile = name/username/picture;
-        // telegram:bot_access lets our bot DM the user (used by notifications).
+        // openid required; profile = name/username/picture;
+        // telegram:bot_access lets the bot DM users (used by notifications).
         scope: "openid profile telegram:bot_access",
+        response_type: "code",
       },
     },
-    // Telegram doesn't ship a userinfo endpoint; openid-client (used by Auth.js
-    // v5 under the hood) treats userinfo as required and throws otherwise.
-    // Override with a function that decodes claims from the id_token JWT
-    // payload directly, so no HTTP call is attempted.
-    userinfo: {
-      async request({ tokens }: { tokens: { id_token?: string } }) {
-        if (!tokens.id_token) throw new Error("Telegram OIDC returned no id_token");
-        const payloadB64 = tokens.id_token.split(".")[1];
-        // JWT payloads are base64url-encoded (RFC 7515) — Node 16+ accepts
-        // "base64url" directly on Buffer.from.
-        const json = Buffer.from(payloadB64, "base64url").toString("utf8");
-        return JSON.parse(json);
-      },
-    },
+    token: "https://oauth.telegram.org/token",
+    jwks_endpoint: "https://oauth.telegram.org/.well-known/jwks.json",
+    idToken: true,
+    checks: ["pkce", "state"],
     profile(p: TelegramProfile) {
       const sub = String(p.sub ?? p.id ?? "");
       return {
