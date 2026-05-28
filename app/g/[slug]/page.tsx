@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getCurrentUser, isAdminOf } from "@/lib/auth-helpers";
+import { filterVisibleEvents } from "@/lib/visibility";
 import { JoinButton } from "@/components/groups/join-button";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -9,6 +11,26 @@ import { Calendar } from "lucide-react";
 import { RealtimeSubscribe } from "@/components/realtime/subscribe";
 import { EmptyState } from "@/components/common/empty-state";
 import { pickTextColor } from "@/lib/color";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const group = await db.group.findUnique({
+    where: { slug },
+    select: { name: true, description: true, visibility: true },
+  });
+  // Only PUBLIC_LISTED groups leak any identifying info via OG cards.
+  // Anything else gets generic metadata so shared URLs don't expose existence.
+  if (!group || group.visibility !== "PUBLIC_LISTED") {
+    return { title: "Eventide", description: "Community calendar." };
+  }
+  const desc = group.description?.slice(0, 200) ?? `Upcoming events for ${group.name} on Eventide.`;
+  return {
+    title: `${group.name} · Eventide`,
+    description: desc,
+    openGraph: { title: group.name, description: desc, type: "website" },
+    twitter: { card: "summary", title: group.name, description: desc },
+  };
+}
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -27,16 +49,27 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ sl
   const memberState: "none" | "pending" | "member" = membership ? "member" : pending?.status === "PENDING" ? "pending" : "none";
   const isAdmin = me ? await isAdminOf(me.id, group.id) : false;
 
-  const upcoming = await db.event.findMany({
+  // Visibility gate. INVITE_ONLY groups are invisible to anyone who isn't a
+  // member; MEMBERS_VISIBLE groups are invisible to logged-out viewers. We
+  // 404 (rather than 403) so the URL doesn't leak that the group exists.
+  if (group.visibility === "INVITE_ONLY" && !membership) notFound();
+  if (group.visibility === "MEMBERS_VISIBLE" && !me) notFound();
+
+  // Non-members (including unauth) only see PUBLIC-scope events. Members and
+  // admins see everything from their group; cross-group MEMBERS/VOUCHED/INVITE
+  // events that happen to be co-hosted here are filtered by canSeeEvent below.
+  const upcomingRaw = await db.event.findMany({
     where: {
       OR: [{ owningGroupId: group.id }, { coHosts: { some: { groupId: group.id } } }],
       cancelledAt: null,
       endsAt: { gte: new Date() },
+      ...(membership ? {} : { scope: "PUBLIC" }),
     },
-    select: { id: true, title: true, startsAt: true, status: true },
+    select: { id: true, title: true, startsAt: true, status: true, scope: true, owningGroupId: true, flyerImageUrl: true },
     orderBy: { startsAt: "asc" },
     take: 20,
   });
+  const upcoming = await filterVisibleEvents(me?.id ?? null, upcomingRaw);
 
   const overlayText = pickTextColor(group.color);
 
@@ -109,6 +142,16 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ sl
                   href={`/e/${e.id}`}
                   className="flex items-center gap-3 py-3 pl-5 pr-3 text-sm transition-colors hover:bg-accent/40"
                 >
+                  {e.flyerImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={e.flyerImageUrl}
+                      alt=""
+                      className="h-10 w-14 shrink-0 rounded object-cover"
+                    />
+                  ) : (
+                    <span aria-hidden="true" className="h-10 w-14 shrink-0 rounded bg-muted" />
+                  )}
                   <span className="w-36 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                     {format(e.startsAt, "EEE MMM d")}
                     <span className="ml-1 text-foreground/80">{format(e.startsAt, "p")}</span>

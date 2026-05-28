@@ -28,7 +28,9 @@ export default async function MapPage({
     : [];
 
   const groups = await db.group.findMany({
-    where: { visibility: { in: ["PUBLIC_LISTED", "MEMBERS_VISIBLE"] } },
+    where: user
+      ? { visibility: { in: ["PUBLIC_LISTED", "MEMBERS_VISIBLE"] } }
+      : { visibility: "PUBLIC_LISTED" },
     select: { id: true, name: true, color: true },
   });
 

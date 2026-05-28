@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Paths that hard-require a session at the edge. Everything else (including
+// /calendar, /map, /e/[id], /g/[slug], /groups) handles its own visibility
+// gating inside the page so anonymous viewers can browse public content.
+// /e/new and /g/*/admin are gated inside their own pages too, but we keep
+// them at the edge to avoid rendering a write-shaped surface to anon users.
 const PROTECTED = [
-  "/calendar",
-  "/map",
   "/e/new",
-  "/e/",
-  "/g/",
   "/me",
   "/settings",
   "/reports",

@@ -1,5 +1,7 @@
 import { notFound, forbidden } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import type { Metadata } from "next";
 import { format } from "date-fns";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-helpers";
@@ -19,6 +21,36 @@ import { VenueNotesEditor } from "@/components/events/venue-notes-editor";
 import { LocationDisplay } from "@/components/events/location-display";
 import { SimilarEvents } from "@/components/events/similar-events";
 import { exposedLocation } from "@/lib/event-location";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const event = await db.event.findUnique({
+    where: { id },
+    select: {
+      title: true,
+      description: true,
+      startsAt: true,
+      scope: true,
+      flyerImageUrl: true,
+      owningGroup: { select: { name: true } },
+    },
+  });
+  // Only PUBLIC events get rich link previews. Anything narrower would leak
+  // titles/descriptions of events the viewer isn't entitled to see.
+  if (!event || event.scope !== "PUBLIC") {
+    return { title: "Eventide", description: "Community calendar." };
+  }
+  const when = format(event.startsAt, "EEE MMM d, p");
+  const title = `${event.title} · ${event.owningGroup.name}`;
+  const description = event.description?.slice(0, 200) ?? `${when} — hosted by ${event.owningGroup.name}.`;
+  const images = event.flyerImageUrl ? [{ url: event.flyerImageUrl }] : undefined;
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "website", images },
+    twitter: { card: event.flyerImageUrl ? "summary_large_image" : "summary", title, description, images: event.flyerImageUrl ? [event.flyerImageUrl] : undefined },
+  };
+}
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -93,6 +125,19 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   return (
     <section className="relative mx-auto max-w-3xl space-y-6">
       <RealtimeSubscribe channels={[`event:${event.id}`, `group:${event.owningGroupId}`]} />
+
+      {event.flyerImageUrl && (
+        <div className="relative -mx-4 aspect-[16/9] overflow-hidden bg-muted sm:rounded-2xl">
+          <Image
+            src={event.flyerImageUrl}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(min-width: 768px) 768px, 100vw"
+            priority
+          />
+        </div>
+      )}
 
       {/* Group-color wash behind the header. Identifies the owning group
           at a glance without overpowering the title or copy. */}
@@ -253,6 +298,20 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             allowPlusOnes={event.allowPlusOnes}
             initialPosition={myRsvp?.waitlistPosition ?? null}
           />
+        </div>
+      )}
+
+      {!me && event.status !== "CANCELLED" && (
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-sm text-muted-foreground">
+            <Link
+              href={`/login?callbackUrl=${encodeURIComponent(`/e/${event.id}`)}`}
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Sign in
+            </Link>{" "}
+            to RSVP.
+          </p>
         </div>
       )}
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { TagInput } from "@/components/ui/tag-input";
+import { Uploader } from "@/components/common/uploader";
 import { ConflictWarning, type ConflictReportSerialized } from "@/components/events/conflict-warning";
 import { DateTimeDurationPicker } from "@/components/events/datetime-duration-picker";
 import { RecurrencePicker } from "@/components/events/recurrence-picker";
@@ -120,6 +121,8 @@ export function EventForm({ ownableGroups, initial }: { ownableGroups: OwnableGr
 
   const [location, setLocation] = useState<LocationValue>(initial?.location ?? { kind: "none" });
 
+  const [flyerImageUrl, setFlyerImageUrl] = useState<string | null>(initial?.flyerImageUrl ?? null);
+
   // Whether the "More options" drawer is open. On edit (initial?.id), default to open
   // so admins can see what they set last time. On create, default closed.
   const [showMore, setShowMore] = useState<boolean>(Boolean(initial?.id));
@@ -177,6 +180,7 @@ export function EventForm({ ownableGroups, initial }: { ownableGroups: OwnableGr
           useWaitlist: hasCapacity ? useWaitlist : false,
           coHostGroupIds: [],
           location,
+          flyerImageUrl,
         };
         const result = initial?.id
           ? { eventId: initial.id, conflicts: await updateEvent(initial.id, payload) }
@@ -259,6 +263,30 @@ export function EventForm({ ownableGroups, initial }: { ownableGroups: OwnableGr
         <div>
           <Label htmlFor="description">Description</Label>
           <Textarea id="description" name="description" rows={4} defaultValue={initial?.description ?? ""} placeholder="What it is, who it's for, what to bring…" />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Cover image</Label>
+          {flyerImageUrl ? (
+            <div className="relative inline-block overflow-hidden rounded-lg border bg-muted/40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={flyerImageUrl}
+                alt=""
+                className="block max-h-48 w-auto object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => setFlyerImageUrl(null)}
+                className="absolute right-1.5 top-1.5 rounded-full bg-background/85 p-1 text-foreground shadow-sm transition-colors hover:bg-background"
+                aria-label="Remove cover image"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <Uploader kind="flyer" onUploaded={setFlyerImageUrl} />
+          )}
         </div>
       </div>
 

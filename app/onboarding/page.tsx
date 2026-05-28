@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { format } from "date-fns";
 import { requireUser } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { hasRealEmail } from "@/lib/identity";
@@ -17,6 +18,23 @@ export default async function OnboardingPage() {
   });
   if (!me) return null;
   const needsEmail = !hasRealEmail(me);
+
+  // Upcoming PUBLIC events from PUBLIC_LISTED groups — what a new user could
+  // RSVP to right now without joining anything first.
+  const upcoming = await db.event.findMany({
+    where: {
+      scope: "PUBLIC",
+      cancelledAt: null,
+      startsAt: { gte: new Date() },
+      owningGroup: { visibility: "PUBLIC_LISTED" },
+    },
+    select: {
+      id: true, title: true, startsAt: true, flyerImageUrl: true,
+      owningGroup: { select: { name: true, color: true } },
+    },
+    orderBy: { startsAt: "asc" },
+    take: 6,
+  });
 
   const groups = await db.group.findMany({
     where: { visibility: { in: ["PUBLIC_LISTED", "MEMBERS_VISIBLE"] } },
@@ -41,6 +59,41 @@ export default async function OnboardingPage() {
           <ProfileForm initial={me} />
         </div>
       </div>
+
+      {upcoming.length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Happening soon</h2>
+          <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+            {upcoming.map((e) => (
+              <li key={e.id}>
+                <Link
+                  href={`/e/${e.id}`}
+                  className="group flex gap-3 overflow-hidden rounded-lg border bg-card transition-colors hover:bg-accent/40"
+                >
+                  {e.flyerImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={e.flyerImageUrl} alt="" className="h-20 w-24 shrink-0 object-cover" />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="h-20 w-24 shrink-0"
+                      style={{ backgroundColor: e.owningGroup.color }}
+                    />
+                  )}
+                  <div className="min-w-0 flex-1 py-2 pr-3">
+                    <p className="truncate font-medium leading-tight">{e.title}</p>
+                    <p className="mt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
+                      {format(e.startsAt, "EEE MMM d · p")}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">{e.owningGroup.name}</p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div>
         <h2 className="text-xl font-semibold tracking-tight">Browse groups</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">

@@ -29,8 +29,12 @@ export default async function CalendarPage({
     : [];
   const myGroupIds = myMemberships.map((m) => m.groupId);
 
+  // Unauth viewers shouldn't even see the names of MEMBERS_VISIBLE groups in
+  // the filter chips — that would leak group existence to non-members.
   const groups = await db.group.findMany({
-    where: { visibility: { in: ["PUBLIC_LISTED", "MEMBERS_VISIBLE"] } },
+    where: user
+      ? { visibility: { in: ["PUBLIC_LISTED", "MEMBERS_VISIBLE"] } }
+      : { visibility: "PUBLIC_LISTED" },
     select: { id: true, name: true, color: true },
   });
 

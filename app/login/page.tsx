@@ -3,28 +3,48 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// Only allow same-origin redirects via callbackUrl. An open redirect here
+// would let anyone craft /login?callbackUrl=https://attacker.tld and use
+// us as a phishing hop.
+function safeCallback(raw: string | string[] | undefined): string {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  if (!v || typeof v !== "string") return "/";
+  if (!v.startsWith("/") || v.startsWith("//")) return "/";
+  return v;
+}
+
 async function signInWithEmail(formData: FormData) {
   "use server";
   const email = formData.get("email") as string;
-  await signIn("email", { email, redirectTo: "/" });
+  const redirectTo = safeCallback(formData.get("callbackUrl") as string | undefined);
+  await signIn("email", { email, redirectTo });
 }
 
-async function signInWithGoogle() {
+async function signInWithGoogle(formData: FormData) {
   "use server";
-  await signIn("google", { redirectTo: "/" });
+  const redirectTo = safeCallback(formData.get("callbackUrl") as string | undefined);
+  await signIn("google", { redirectTo });
 }
 
-async function signInWithTelegram() {
+async function signInWithTelegram(formData: FormData) {
   "use server";
-  await signIn("telegram", { redirectTo: "/" });
+  const redirectTo = safeCallback(formData.get("callbackUrl") as string | undefined);
+  await signIn("telegram", { redirectTo });
 }
 
-async function signInWithDiscord() {
+async function signInWithDiscord(formData: FormData) {
   "use server";
-  await signIn("discord", { redirectTo: "/" });
+  const redirectTo = safeCallback(formData.get("callbackUrl") as string | undefined);
+  await signIn("discord", { redirectTo });
 }
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string | string[] }>;
+}) {
+  const sp = await searchParams;
+  const callbackUrl = safeCallback(sp.callbackUrl);
   const googleEnabled = !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
   const telegramEnabled = !!(process.env.TELEGRAM_CLIENT_ID && process.env.TELEGRAM_CLIENT_SECRET);
   const discordEnabled = !!(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET);
@@ -55,6 +75,7 @@ export default function LoginPage() {
             <div className="space-y-2.5">
               {googleEnabled && (
                 <form action={signInWithGoogle}>
+                  <input type="hidden" name="callbackUrl" value={callbackUrl} />
                   <Button
                     type="submit"
                     variant="outline"
@@ -73,6 +94,7 @@ export default function LoginPage() {
 
               {telegramEnabled && (
                 <form action={signInWithTelegram}>
+                  <input type="hidden" name="callbackUrl" value={callbackUrl} />
                   <Button
                     type="submit"
                     className="w-full justify-center gap-2.5 text-white hover:opacity-95"
@@ -88,6 +110,7 @@ export default function LoginPage() {
 
               {discordEnabled && (
                 <form action={signInWithDiscord}>
+                  <input type="hidden" name="callbackUrl" value={callbackUrl} />
                   <Button
                     type="submit"
                     className="w-full justify-center gap-2.5 text-white hover:opacity-95"
@@ -110,6 +133,7 @@ export default function LoginPage() {
           )}
 
           <form action={signInWithEmail} className="space-y-3">
+            <input type="hidden" name="callbackUrl" value={callbackUrl} />
             <div>
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" required autoComplete="email" placeholder="you@where-you-are.com" />
