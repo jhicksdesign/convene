@@ -11,6 +11,7 @@ import { Calendar } from "lucide-react";
 import { RealtimeSubscribe } from "@/components/realtime/subscribe";
 import { EmptyState } from "@/components/common/empty-state";
 import { pickTextColor } from "@/lib/color";
+import { ArrowRight } from "lucide-react";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -111,6 +112,34 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ sl
           </div>
         </div>
       </header>
+
+      {!me && group.visibility !== "INVITE_ONLY" && (
+        <aside
+          className="-mt-2 overflow-hidden rounded-xl border-l-4 bg-card"
+          style={{ borderLeftColor: group.color, boxShadow: "var(--shadow-paper)" }}
+        >
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 p-4 sm:p-5">
+            <div className="min-w-[14rem] flex-1">
+              <h2
+                className="font-display text-xl font-medium leading-tight tracking-tight"
+                style={{ fontVariationSettings: '"opsz" 36, "SOFT" 50' }}
+              >
+                Want in?
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Sign in to join <span className="font-medium text-foreground">{group.name}</span>, RSVP to its events, and see who’s going.
+              </p>
+            </div>
+            <Link
+              href={`/login?callbackUrl=${encodeURIComponent(`/g/${group.slug}`)}`}
+              className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-opacity hover:opacity-90"
+              style={{ backgroundColor: group.color, color: pickTextColor(group.color) }}
+            >
+              Sign in <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </aside>
+      )}
 
       <div>
         <h2 className="font-display text-2xl font-medium tracking-tight">Upcoming events</h2>

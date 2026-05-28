@@ -30,7 +30,9 @@ export async function TopBar() {
           >
             Eventide
           </Link>
-          {user && <TopNavLinks />}
+          {/* Nav exposed to everyone — /calendar, /map, /groups are public surfaces.
+              Per-page visibility gating still hides non-public events and groups. */}
+          <TopNavLinks />
         </div>
         <div className="flex items-center gap-2">
           {user && <TopBarSearch />}

@@ -1,4 +1,8 @@
+import Link from "next/link";
+import { format } from "date-fns";
+import { ArrowLeft } from "lucide-react";
 import { signIn } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +15,36 @@ function safeCallback(raw: string | string[] | undefined): string {
   if (!v || typeof v !== "string") return "/";
   if (!v.startsWith("/") || v.startsWith("//")) return "/";
   return v;
+}
+
+type LoginContext =
+  | { kind: "event"; name: string; startsAt: Date; backHref: string }
+  | { kind: "group"; name: string; backHref: string }
+  | null;
+
+// Resolve a callbackUrl into a context block when it points at a public event or
+// group. Non-public resources fall back to null so we don't leak existence via
+// the login page (same privacy principle as generateMetadata on the resources).
+async function resolveContext(callbackUrl: string): Promise<LoginContext> {
+  const eventMatch = callbackUrl.match(/^\/e\/([^/?#]+)/);
+  if (eventMatch) {
+    const event = await db.event.findUnique({
+      where: { id: eventMatch[1] },
+      select: { title: true, startsAt: true, scope: true },
+    });
+    if (!event || event.scope !== "PUBLIC") return null;
+    return { kind: "event", name: event.title, startsAt: event.startsAt, backHref: callbackUrl };
+  }
+  const groupMatch = callbackUrl.match(/^\/g\/([^/?#]+)/);
+  if (groupMatch) {
+    const group = await db.group.findUnique({
+      where: { slug: groupMatch[1] },
+      select: { name: true, visibility: true },
+    });
+    if (!group || group.visibility !== "PUBLIC_LISTED") return null;
+    return { kind: "group", name: group.name, backHref: callbackUrl };
+  }
+  return null;
 }
 
 async function signInWithEmail(formData: FormData) {
@@ -45,6 +79,7 @@ export default async function LoginPage({
 }) {
   const sp = await searchParams;
   const callbackUrl = safeCallback(sp.callbackUrl);
+  const context = await resolveContext(callbackUrl);
   const googleEnabled = !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
   const telegramEnabled = !!(process.env.TELEGRAM_CLIENT_ID && process.env.TELEGRAM_CLIENT_SECRET);
   const discordEnabled = !!(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET);
@@ -58,14 +93,36 @@ export default async function LoginPage({
       <div aria-hidden="true" className="hero-atmosphere pointer-events-none fixed inset-0 -z-10" />
 
       <div className="relative w-full max-w-sm">
-        <div className="mb-7 text-center">
-          <h1
-            className="font-display text-6xl font-medium leading-none tracking-tight"
-            style={{ fontVariationSettings: '"opsz" 144, "SOFT" 30' }}
-          >
-            Eventide
-          </h1>
-        </div>
+        {context ? (
+          // Context-aware header — when the user arrived here from /e/<id> or
+          // /g/<slug>, surface what they were trying to do. Honest about the
+          // value of signing in instead of fronting a generic brand splash.
+          <div className="mb-6 text-center">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              {context.kind === "event" ? "Sign in to RSVP to" : "Sign in to join"}
+            </p>
+            <h1
+              className="mt-1.5 font-display text-3xl font-medium leading-tight tracking-tight"
+              style={{ fontVariationSettings: '"opsz" 48, "SOFT" 45' }}
+            >
+              {context.name}
+            </h1>
+            {context.kind === "event" && (
+              <p className="mt-1 font-mono text-xs tabular-nums text-muted-foreground">
+                {format(context.startsAt, "EEE MMM d · p")}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="mb-7 text-center">
+            <h1
+              className="font-display text-6xl font-medium leading-none tracking-tight"
+              style={{ fontVariationSettings: '"opsz" 144, "SOFT" 30' }}
+            >
+              Eventide
+            </h1>
+          </div>
+        )}
 
         <div
           className="rounded-2xl border bg-card/85 p-6 backdrop-blur-sm"
@@ -144,6 +201,17 @@ export default async function LoginPage({
           </form>
         </div>
 
+        {context && (
+          <div className="mt-4 text-center">
+            <Link
+              href={context.backHref}
+              className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+              Back to {context.kind === "event" ? "event" : "group"}
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

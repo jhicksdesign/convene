@@ -5,6 +5,7 @@ import { TopBar } from "@/components/layout/top-bar";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { MotionProvider } from "@/components/common/motion-provider";
 import { Toaster } from "sonner";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,7 +31,9 @@ export const metadata: Metadata = {
   description: "The calendar where overlapping communities see what each other is doing.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const me = await getCurrentUser();
+  const isAuthed = !!me;
   return (
     <html
       lang="en"
@@ -40,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <MotionProvider>
           <TopBar />
           <main className="mx-auto max-w-7xl px-4 py-6 pb-20 md:pb-6">{children}</main>
-          <MobileTabBar />
+          <MobileTabBar isAuthed={isAuthed} />
           <Toaster richColors position="bottom-center" offset="6rem" />
         </MotionProvider>
       </body>
