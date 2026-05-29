@@ -1,11 +1,13 @@
 "use client";
 
 import { useTransition, useState } from "react";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserCombobox } from "@/components/common/user-combobox";
+import { GoingBurst } from "@/components/events/going-burst";
 import { setRSVP, withdrawRSVP } from "@/app/_actions/rsvps";
 
 type Status = "GOING" | "INTERESTED" | "MAYBE" | "NOT_GOING" | "CONDITIONAL" | "WAITLIST";
@@ -28,6 +30,9 @@ export function RSVPButton({ eventId, initialStatus, initialPlusOnes = 0, allowP
   const [pending, start] = useTransition();
   const [position, setPosition] = useState<number | null>(initialPosition ?? null);
   const [error, setError] = useState<string | null>(null);
+  // Incrementing key that fires the celebratory spark burst on a fresh
+  // "Going" commit. Bumped only when the saved status is GOING.
+  const [celebrate, setCelebrate] = useState(0);
 
   function submit() {
     setError(null);
@@ -43,6 +48,7 @@ export function RSVPButton({ eventId, initialStatus, initialPlusOnes = 0, allowP
             status === "CONDITIONAL" && condMode === "user" ? conditionalUser?.id ?? null : null,
         });
         setPosition(result.waitlistPosition);
+        if (result.status === "GOING") setCelebrate((n) => n + 1);
         toast.success(
           result.status === "WAITLIST"
             ? `Added to waitlist (#${result.waitlistPosition}). You'll be notified if a spot opens.`
@@ -114,7 +120,14 @@ export function RSVPButton({ eventId, initialStatus, initialPlusOnes = 0, allowP
             <Input type="number" min={0} max={10} value={plusOnes} onChange={(e) => setPlusOnes(Number(e.target.value))} className="w-20" />
           </div>
         )}
-        <Button onClick={submit} disabled={pending}>{pending ? "Saving…" : "Save RSVP"}</Button>
+        <motion.div
+          className="relative"
+          animate={celebrate ? { scale: [1, 1.06, 1] } : {}}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
+          <GoingBurst trigger={celebrate} />
+          <Button onClick={submit} disabled={pending}>{pending ? "Saving…" : "Save RSVP"}</Button>
+        </motion.div>
         {initialStatus && <Button onClick={withdraw} variant="ghost" disabled={pending}>Withdraw</Button>}
         {position != null && <span className="text-xs text-muted-foreground">Waitlist position #{position}</span>}
       </div>

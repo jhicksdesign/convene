@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { EmptyState } from "@/components/common/empty-state";
 import { GroupCard } from "@/components/groups/group-card";
+import { Reveal } from "@/components/common/reveal";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { recommendFor } from "@/lib/recommendations";
@@ -55,7 +56,7 @@ export default async function HomePage() {
         <div aria-hidden="true" className="hero-atmosphere pointer-events-none fixed inset-0 -z-10" />
 
         {/* ───────── Hero — compressed but still anchoring ───────── */}
-        <section className="pt-4 text-center sm:pt-8">
+        <Reveal as="section" className="pt-4 text-center sm:pt-8">
           <h1
             className="font-display text-5xl font-medium leading-[0.95] tracking-tight sm:text-6xl"
             style={{ fontVariationSettings: '"opsz" 144, "SOFT" 25' }}
@@ -79,7 +80,7 @@ export default async function HomePage() {
               </Button>
             </Link>
           </div>
-        </section>
+        </Reveal>
 
         {/* ───────── Happening soon ───────── */}
         <section>
@@ -112,8 +113,8 @@ export default async function HomePage() {
             />
           ) : (
             <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-              {upcoming.map((e) => (
-                <li key={e.id}>
+              {upcoming.map((e, i) => (
+                <Reveal as="li" key={e.id} delay={0.05 + i * 0.04}>
                   <Link href={`/e/${e.id}`} className="group block h-full">
                     <Card
                       className="relative flex h-full flex-col overflow-hidden border-l-4 p-0 transition-all duration-150 group-hover:-translate-y-px"
@@ -173,7 +174,7 @@ export default async function HomePage() {
                       </CardContent>
                     </Card>
                   </Link>
-                </li>
+                </Reveal>
               ))}
             </ul>
           )}
@@ -211,15 +212,16 @@ export default async function HomePage() {
               </Link>
             </header>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {groups.map((g) => (
-                <GroupCard
-                  key={g.id}
-                  slug={g.slug}
-                  name={g.name}
-                  color={g.color}
-                  description={g.description}
-                  memberCount={g._count.memberships}
-                />
+              {groups.map((g, i) => (
+                <Reveal key={g.id} delay={0.05 + i * 0.04} className="h-full">
+                  <GroupCard
+                    slug={g.slug}
+                    name={g.name}
+                    color={g.color}
+                    description={g.description}
+                    memberCount={g._count.memberships}
+                  />
+                </Reveal>
               ))}
             </div>
           </section>
@@ -238,14 +240,14 @@ export default async function HomePage() {
 
   return (
     <section className="space-y-6">
-      <div>
+      <Reveal>
         <h1 className="font-display text-3xl font-medium leading-none tracking-tight sm:text-4xl">
           For you
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Picked for you from your groups and what’s nearby.
         </p>
-      </div>
+      </Reveal>
       {recommendations.length === 0 ? (
         <EmptyState
           icon={Sparkles}
@@ -255,11 +257,12 @@ export default async function HomePage() {
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {recommendations.map((r) => {
+          {recommendations.map((r, i) => {
             const e = byId.get(r.eventId);
             if (!e) return null;
             return (
-              <Link key={r.eventId} href={`/e/${e.id}`} className="group block">
+              <Reveal key={r.eventId} delay={i * 0.04} className="h-full">
+              <Link href={`/e/${e.id}`} className="group block h-full">
                 <Card
                   className="relative h-full overflow-hidden border-l-4 transition-all duration-150 group-hover:-translate-y-px"
                   style={{ borderLeftColor: e.owningGroup.color }}
@@ -287,6 +290,7 @@ export default async function HomePage() {
                   </CardContent>
                 </Card>
               </Link>
+              </Reveal>
             );
           })}
         </div>

@@ -3,12 +3,11 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { filterVisibleEvents } from "@/lib/visibility";
 import { expandAll } from "@/lib/recurrence";
-import { MonthView, type CalEvent } from "@/components/calendar/month-view";
-import { AgendaView } from "@/components/calendar/agenda-view";
-import { WeekView } from "@/components/calendar/week-view";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { type CalEvent } from "@/components/calendar/month-view";
+import { CalendarBoard } from "@/components/calendar/calendar-board";
 import { FilterChips } from "@/components/calendar/filter-chips";
 import { RealtimeSubscribe } from "@/components/realtime/subscribe";
+import { Reveal } from "@/components/common/reveal";
 
 const CANCELLED_HIDE_DAYS = 30; // §6.2 — cancelled events hidden from default views after 30d
 
@@ -115,25 +114,30 @@ export default async function CalendarPage({
   const subscribedChannels = ["calendar", ...selectedGroups.map((g) => `group:${g}`)];
 
   return (
-    <section className="space-y-4">
-      <RealtimeSubscribe channels={subscribedChannels} />
-      <FilterChips
-        groups={groups}
-        myGroupIds={myGroupIds}
-        showRsvpFilter={!!user}
+    <section className="relative space-y-4">
+      {/* Soft warm glow anchored to the top of the calendar — the same dusk
+          atmosphere as the landing pages, dialed right down so the working
+          grid stays clean and legible at every width. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -top-6 -z-10 h-56 sm:h-72"
+        style={{
+          background:
+            "radial-gradient(70% 100% at 50% 0%, var(--color-orb-warm) 0%, transparent 70%)",
+          opacity: 0.1,
+        }}
       />
-      <Tabs defaultValue="month">
-        <TabsList>
-          <TabsTrigger value="month">Month</TabsTrigger>
-          <TabsTrigger value="week">Week</TabsTrigger>
-          <TabsTrigger value="agenda">Agenda</TabsTrigger>
-        </TabsList>
-        <TabsContent value="month"><MonthView events={calEvents} /></TabsContent>
-        <TabsContent value="week"><WeekView events={calEvents} /></TabsContent>
-        <TabsContent value="agenda">
-          <AgendaView events={calEvents.sort((a, b) => a.startsAt.localeCompare(b.startsAt))} />
-        </TabsContent>
-      </Tabs>
+      <RealtimeSubscribe channels={subscribedChannels} />
+      <Reveal>
+        <FilterChips
+          groups={groups}
+          myGroupIds={myGroupIds}
+          showRsvpFilter={!!user}
+        />
+      </Reveal>
+      <Reveal delay={0.06}>
+        <CalendarBoard events={calEvents} />
+      </Reveal>
     </section>
   );
 }

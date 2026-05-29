@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { Calendar } from "lucide-react";
 import { RealtimeSubscribe } from "@/components/realtime/subscribe";
 import { EmptyState } from "@/components/common/empty-state";
+import { Reveal } from "@/components/common/reveal";
 import { pickTextColor } from "@/lib/color";
 import { ArrowRight } from "lucide-react";
 
@@ -75,8 +76,20 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ sl
   const overlayText = pickTextColor(group.color);
 
   return (
-    <section className="space-y-6">
+    <section className="relative space-y-6">
       <RealtimeSubscribe channels={[`group:${group.id}`]} />
+
+      {/* Whole-surface wash in the group's own color — faint, top-anchored,
+          so the entire page feels like *this* community's room rather than a
+          generic page with a colored header. Sits behind the opaque header. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[55vh]"
+        style={{
+          background: `radial-gradient(95% 60% at 50% 0%, ${group.color}, transparent 62%)`,
+          opacity: 0.08,
+        }}
+      />
 
       {/* Colored band — the group identity reads instantly. Bleeds to the
           content edges via negative margin to undo the main padding. */}
@@ -141,8 +154,11 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ sl
         </aside>
       )}
 
-      <div>
-        <h2 className="font-display text-2xl font-medium tracking-tight">Upcoming events</h2>
+      <Reveal delay={0.08}>
+        <h2 className="flex items-center gap-2 font-display text-2xl font-medium tracking-tight">
+          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: group.color }} />
+          Upcoming events
+        </h2>
         {upcoming.length === 0 ? (
           <div className="mt-3">
             <EmptyState
@@ -196,7 +212,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ sl
             ))}
           </ul>
         )}
-      </div>
+      </Reveal>
     </section>
   );
 }

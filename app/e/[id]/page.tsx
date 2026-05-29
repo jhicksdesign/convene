@@ -1,6 +1,5 @@
 import { notFound, forbidden } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
 import { format } from "date-fns";
 import { db } from "@/lib/db";
@@ -20,6 +19,8 @@ import { addMonths } from "date-fns";
 import { VenueNotesEditor } from "@/components/events/venue-notes-editor";
 import { LocationDisplay } from "@/components/events/location-display";
 import { SimilarEvents } from "@/components/events/similar-events";
+import { EventPoster } from "@/components/events/event-poster";
+import { Reveal } from "@/components/common/reveal";
 import { exposedLocation } from "@/lib/event-location";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -126,68 +127,18 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     <section className="relative mx-auto max-w-3xl space-y-6">
       <RealtimeSubscribe channels={[`event:${event.id}`, `group:${event.owningGroupId}`]} />
 
-      {event.flyerImageUrl && (
-        <div className="relative -mx-4 aspect-[16/9] overflow-hidden bg-muted sm:rounded-2xl">
-          <Image
-            src={event.flyerImageUrl}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(min-width: 768px) 768px, 100vw"
-            priority
-          />
-        </div>
-      )}
+      <EventPoster
+        flyerImageUrl={event.flyerImageUrl}
+        title={event.title}
+        group={event.owningGroup}
+        coHosts={event.coHosts.map((c) => c.group)}
+        dateText={format(event.startsAt, "EEEE, MMMM d, yyyy")}
+        timeText={`${format(event.startsAt, "p")} – ${format(event.endsAt, "p")}`}
+        statusLabel={event.status !== "CONFIRMED" ? event.status.toLowerCase() : null}
+        statusTone={event.status === "CANCELLED" ? "cancelled" : "tentative"}
+      />
 
-      {/* Group-color wash behind the header. Identifies the owning group
-          at a glance without overpowering the title or copy. */}
-      <header
-        className="relative -mx-4 overflow-hidden border-t-[3px] px-4 pb-2 pt-6 sm:rounded-b-2xl sm:px-6"
-        style={{ borderTopColor: event.owningGroup.color }}
-      >
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-40"
-          style={{ background: `linear-gradient(180deg, ${event.owningGroup.color}26 0%, transparent 100%)` }}
-        />
-        <div className="relative space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/g/${event.owningGroup.slug}`}
-              className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
-              style={{ color: event.owningGroup.color }}
-            >
-              <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: event.owningGroup.color }} />
-              {event.owningGroup.name}
-            </Link>
-            {event.coHosts.map((c) => (
-              <Link
-                key={c.groupId}
-                href={`/g/${c.group.slug}`}
-                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:underline"
-              >
-                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c.group.color }} />
-                + {c.group.name}
-              </Link>
-            ))}
-            {event.status !== "CONFIRMED" && (
-              <Badge variant={event.status === "CANCELLED" ? "destructive" : "secondary"}>
-                {event.status.toLowerCase()}
-              </Badge>
-            )}
-          </div>
-          <h1
-            className="font-display text-3xl font-medium leading-tight tracking-tight sm:text-4xl"
-            style={{ fontVariationSettings: '"opsz" 96, "SOFT" 35' }}
-          >
-            {event.title}
-          </h1>
-          <p className="font-mono text-sm tabular-nums text-muted-foreground">
-            {format(event.startsAt, "EEEE, MMMM d, yyyy")}
-            <span className="ml-2 text-foreground/85">
-              {format(event.startsAt, "p")} – {format(event.endsAt, "p")}
-            </span>
-          </p>
+      <Reveal className="space-y-3" delay={0.05}>
           {exposed.kind !== "none" || exposed.generalArea ? (
             <div className="space-y-2">
               {exposed.kind === "pin" && (
@@ -259,11 +210,10 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               {event.accessibilityFlags.map((f) => <Badge key={f} variant="outline">{f.replace(/_/g, " ")}</Badge>)}
             </div>
           )}
-        </div>
-      </header>
+      </Reveal>
 
       {event.description && (
-        <article className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground/90">{event.description}</article>
+        <Reveal as="article" delay={0.1} className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground/90">{event.description}</Reveal>
       )}
 
       {me && event.status !== "CANCELLED" && (

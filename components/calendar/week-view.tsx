@@ -5,6 +5,7 @@ import { addDays, format, isSameDay, startOfWeek } from "date-fns";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { pickTextColor } from "@/lib/color";
+import { cn } from "@/lib/utils";
 import type { CalEvent } from "@/components/calendar/month-view";
 
 export function WeekView({ events }: { events: CalEvent[] }) {
@@ -31,7 +32,10 @@ export function WeekView({ events }: { events: CalEvent[] }) {
           return (
             <div
               key={d.toISOString()}
-              className="min-h-48 rounded-xl border bg-card p-2"
+              className={cn(
+                "min-h-48 rounded-xl border bg-card p-2 transition-colors",
+                isToday && "border-primary/40 bg-primary/[0.04] ring-1 ring-primary/30",
+              )}
               style={{ boxShadow: "var(--shadow-paper)" }}
             >
               <div className="mb-2 flex items-center justify-between">
@@ -56,7 +60,7 @@ export function WeekView({ events }: { events: CalEvent[] }) {
                     <Link
                       key={e.id + e.startsAt}
                       href={`/e/${e.id}`}
-                      className={`block rounded-md px-2 py-1.5 text-xs leading-tight transition-transform duration-100 hover:-translate-y-px ${cancelled ? "cal-pill-cancelled" : ""}`}
+                      className={`block rounded-md px-2 py-1.5 text-xs leading-tight transition-all duration-100 hover:-translate-y-px hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.30)] ${cancelled ? "cal-pill-cancelled" : ""}`}
                       style={{ backgroundColor: e.color, color: fg }}
                     >
                       <div className="font-mono text-[10px] font-semibold tabular-nums opacity-90">

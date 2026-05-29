@@ -67,8 +67,9 @@ export function MonthView({ events, initialMonth }: { events: CalEvent[]; initia
             <div
               key={d.toISOString()}
               className={cn(
-                "relative min-h-28 bg-background p-1.5",
+                "relative min-h-28 bg-background p-1.5 transition-colors",
                 !inMonth && "opacity-55",
+                isToday && "bg-primary/[0.06]",
               )}
             >
               <div
@@ -105,7 +106,7 @@ export function MonthView({ events, initialMonth }: { events: CalEvent[]; initia
                       key={e.id + e.startsAt}
                       href={e.isSoftClaim ? "#" : `/e/${e.id}`}
                       className={cn(
-                        "group/pill block h-6 overflow-hidden rounded-md text-[11px] leading-none transition-transform duration-100 hover:-translate-y-px",
+                        "group/pill block h-6 overflow-hidden rounded-md text-[11px] leading-none transition-all duration-100 hover:-translate-y-px hover:shadow-[0_4px_10px_-3px_rgba(0,0,0,0.30)]",
                         e.isSoftClaim && "border border-dashed opacity-70",
                         cancelled && "cal-pill-cancelled",
                       )}

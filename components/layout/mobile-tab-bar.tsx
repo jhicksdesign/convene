@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { Calendar, Home, LogIn, Map, Sparkles, User } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -56,10 +57,14 @@ export function MobileTabBar({ isAuthed }: { isAuthed: boolean }) {
               active ? "text-primary" : "text-muted-foreground",
             )}
           >
-            <Icon className={cn("h-5 w-5", active && "scale-110")} />
+            <Icon className={cn("h-5 w-5 transition-transform", active && "scale-110")} />
             {t.label}
             {active && (
-              <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-primary" />
+              <motion.span
+                layoutId="mobile-tab-indicator"
+                className="absolute top-0 h-0.5 w-8 rounded-b-full bg-primary"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              />
             )}
           </Link>
         );

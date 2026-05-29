@@ -11,7 +11,7 @@ interface Props {
 
 export function GroupCard({ slug, name, color, description, memberCount }: Props) {
   return (
-    <Link href={`/g/${slug}`} className="group block">
+    <Link href={`/g/${slug}`} className="group block h-full">
       <Card
         className="relative h-full overflow-hidden border-l-4 transition-all duration-150 group-hover:-translate-y-px"
         style={{ borderLeftColor: color }}

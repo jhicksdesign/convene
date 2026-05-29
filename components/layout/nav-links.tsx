@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { Calendar, Map, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,12 +26,17 @@ export function TopNavLinks() {
             aria-current={active ? "page" : undefined}
             className={cn(
               "relative flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors",
-              active
-                ? "font-medium text-primary after:absolute after:inset-x-3 after:-bottom-[7px] after:h-0.5 after:rounded-full after:bg-primary"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+              active ? "font-medium text-primary" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
             )}
           >
             <Icon className="h-4 w-4" /> {l.label}
+            {active && (
+              <motion.span
+                layoutId="nav-underline"
+                className="absolute inset-x-3 -bottom-[7px] h-0.5 rounded-full bg-primary"
+                transition={{ type: "spring", stiffness: 400, damping: 32 }}
+              />
+            )}
           </Link>
         );
       })}
