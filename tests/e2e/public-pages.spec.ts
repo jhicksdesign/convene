@@ -1,12 +1,17 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Public routes", () => {
-  test("home renders the marketing pitch for logged-out users", async ({ page }) => {
+  test("home surfaces public discovery for logged-out users", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Eventide" })).toBeVisible();
-    // There are intentionally two Sign in entry points on the logged-out home
-    // (top-bar + hero CTA). Scope to the hero so the test is unambiguous.
-    await expect(page.getByRole("main").getByRole("link", { name: /sign in/i })).toBeVisible();
+    // Hero CTAs lead with browsing now that /calendar and /map are public.
+    // Sign in lives in the top bar, not in main — so scope these to main.
+    const main = page.getByRole("main");
+    await expect(main.getByRole("link", { name: /browse the calendar/i })).toBeVisible();
+    await expect(main.getByRole("link", { name: /see the map/i })).toBeVisible();
+    // The "Happening soon" section header renders even when there are no
+    // public events seeded — its EmptyState lives below it.
+    await expect(main.getByRole("heading", { name: /happening soon/i })).toBeVisible();
   });
 
   test("login page accepts email submission", async ({ page }) => {
