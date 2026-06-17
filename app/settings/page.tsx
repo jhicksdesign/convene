@@ -25,6 +25,7 @@ export default async function SettingsPage() {
         <Link href="/settings/vouches" className="text-muted-foreground hover:underline">Vouches</Link>
         <Link href="/settings/blocks" className="text-muted-foreground hover:underline">Blocks</Link>
         <Link href="/settings/calendar-feeds" className="text-muted-foreground hover:underline">Calendar feeds</Link>
+        <Link href="/settings/calendar-import" className="text-muted-foreground hover:underline">Import calendar</Link>
         <Link href="/settings/export" className="text-muted-foreground hover:underline">Export data</Link>
         <Link href="/settings/delete" className="text-destructive hover:underline">Delete account</Link>
       </nav>

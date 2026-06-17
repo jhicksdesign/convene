@@ -203,6 +203,42 @@ export const locationUpsert = z.object({
 export const friendAction = z.object({ otherUserId: z.string() });
 export const blockAction = z.object({ otherUserId: z.string() });
 
+export const eventCommentCreate = z
+  .object({
+    eventId: z.string().min(1),
+    body: z.string().trim().max(4000).default(""),
+    imageUrl: z.string().url().optional().nullable(),
+    // User ids the author @mentioned; the action re-checks each can see the event.
+    mentionedUserIds: z.array(z.string()).max(20).default([]),
+  })
+  // A comment must carry something — text or an image.
+  .refine((v) => v.body.length > 0 || !!v.imageUrl, { message: "Say something or attach an image." });
+
+export const eventCommentEdit = z.object({
+  commentId: z.string().min(1),
+  body: z.string().trim().min(1, "Say something").max(4000),
+});
+
+// Small fixed palette — keeps the reaction bar legible and avoids an emoji picker.
+export const COMMENT_REACTIONS = ["👍", "❤️", "🎉", "😂", "👀", "🙌"] as const;
+export const eventCommentReactionToggle = z.object({
+  commentId: z.string().min(1),
+  emoji: z.enum(COMMENT_REACTIONS),
+});
+
+// External calendar subscription. We only accept https URLs and reject
+// obvious internal hosts in the action layer (SSRF guard); webcal:// links
+// (Apple) are normalized to https before validation.
+export const externalCalendarUrlCreate = z.object({
+  label: z.string().trim().min(1).max(80),
+  url: z.string().url().max(2000),
+});
+
+export const externalCalendarFileImport = z.object({
+  label: z.string().trim().min(1).max(80),
+  ics: z.string().min(1).max(2_000_000), // ~2MB of text
+});
+
 export type GroupCreate = z.infer<typeof groupCreate>;
 export type EventCreate = z.infer<typeof eventCreate>;
 export type SoftClaimCreate = z.infer<typeof softClaimCreate>;
@@ -216,3 +252,8 @@ export type CarpoolRequestCreate = z.infer<typeof carpoolRequestCreate>;
 export type LocationUpsert = z.infer<typeof locationUpsert>;
 export type EventLocationInput = z.infer<typeof eventLocationInput>;
 export type EventLocationVisibility = z.infer<typeof eventLocationVisibility>;
+export type EventCommentCreate = z.infer<typeof eventCommentCreate>;
+export type EventCommentEdit = z.infer<typeof eventCommentEdit>;
+export type CommentReaction = (typeof COMMENT_REACTIONS)[number];
+export type ExternalCalendarUrlCreate = z.infer<typeof externalCalendarUrlCreate>;
+export type ExternalCalendarFileImport = z.infer<typeof externalCalendarFileImport>;

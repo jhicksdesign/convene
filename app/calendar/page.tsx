@@ -111,6 +111,37 @@ export default async function CalendarPage({
     });
   }
 
+  // Personal overlay — the viewer's imported (Google/Apple) busy blocks from
+  // enabled calendars, shown as muted, non-clickable holds alongside group
+  // events so clashes are obvious at a glance. Only ever the viewer's own.
+  if (user) {
+    const personal = await db.externalCalendarEvent.findMany({
+      where: {
+        calendar: { userId: user.id, enabled: true },
+        startsAt: { lte: to },
+        endsAt: { gte: from },
+      },
+      select: {
+        id: true,
+        title: true,
+        startsAt: true,
+        endsAt: true,
+        calendar: { select: { label: true, color: true } },
+      },
+    });
+    for (const p of personal) {
+      calEvents.push({
+        id: `ext-${p.id}`,
+        title: p.title,
+        startsAt: p.startsAt.toISOString(),
+        endsAt: p.endsAt.toISOString(),
+        groupName: p.calendar.label,
+        color: p.calendar.color,
+        isPersonal: true,
+      });
+    }
+  }
+
   const subscribedChannels = ["calendar", ...selectedGroups.map((g) => `group:${g}`)];
 
   return (

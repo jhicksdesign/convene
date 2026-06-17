@@ -19,6 +19,8 @@ export function AgendaView({ events }: { events: CalEvent[] }) {
       {events.map((e, i) => {
         const cancelled = e.status === "CANCELLED";
         const soft = e.isSoftClaim;
+        const personal = e.isPersonal;
+        const isStatic = soft || personal;
         const row = (
           <span className="flex items-center gap-3 py-3 pl-5 pr-3 text-sm">
             <span className="w-32 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
@@ -26,7 +28,7 @@ export function AgendaView({ events }: { events: CalEvent[] }) {
               {!soft && <span className="ml-1 text-foreground/80">{format(new Date(e.startsAt), "p")}</span>}
             </span>
             <span
-              className={`truncate font-medium ${cancelled ? "text-muted-foreground line-through" : ""} ${soft ? "text-muted-foreground" : ""}`}
+              className={`truncate font-medium ${cancelled ? "text-muted-foreground line-through" : ""} ${isStatic ? "text-muted-foreground" : ""}`}
             >
               {e.title}
             </span>
@@ -42,6 +44,11 @@ export function AgendaView({ events }: { events: CalEvent[] }) {
                 hold
               </span>
             )}
+            {personal && (
+              <span className="shrink-0 rounded-full border border-dashed px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider" style={{ borderColor: e.color, color: e.color }}>
+                busy
+              </span>
+            )}
             <span className="ml-auto truncate text-xs text-muted-foreground">{e.groupName}</span>
           </span>
         );
@@ -49,16 +56,16 @@ export function AgendaView({ events }: { events: CalEvent[] }) {
           <li key={e.id + e.startsAt} className={`relative ${i > 0 ? "border-t border-border" : ""}`}>
             <span
               aria-hidden="true"
-              className={`absolute inset-y-0 left-0 w-1 ${soft ? "opacity-60" : ""}`}
+              className={`absolute inset-y-0 left-0 w-1 ${isStatic ? "opacity-60" : ""}`}
               style={
-                soft
+                isStatic
                   ? { backgroundImage: `repeating-linear-gradient(180deg, ${e.color} 0 3px, transparent 3px 6px)` }
                   : { backgroundColor: e.color }
               }
             />
-            {/* Soft claims aren't real events yet — render them as static rows,
-                not links, so a tap doesn't dead-end on a missing page. */}
-            {soft ? (
+            {/* Soft claims and personal busy blocks aren't Convene events —
+                render them as static rows so a tap doesn't dead-end. */}
+            {isStatic ? (
               <div className="cursor-default">{row}</div>
             ) : (
               <Link href={`/e/${e.id}`} className="block transition-colors hover:bg-accent/40">

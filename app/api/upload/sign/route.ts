@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth-helpers";
 import { signedUploadUrl, type UploadKind } from "@/lib/r2";
 import { rateLimitForUser, RateLimitError } from "@/lib/rate-limit";
 
-const KINDS = new Set<UploadKind>(["avatar", "flyer", "evidence"]);
+const KINDS = new Set<UploadKind>(["avatar", "flyer", "evidence", "comment"]);
 
 export async function POST(req: Request) {
   const user = await requireUser();

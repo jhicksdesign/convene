@@ -22,6 +22,10 @@ import { SimilarEvents } from "@/components/events/similar-events";
 import { EventPoster } from "@/components/events/event-poster";
 import { Reveal } from "@/components/common/reveal";
 import { exposedLocation } from "@/lib/event-location";
+import { EventDiscussion } from "@/components/events/event-discussion";
+import { fetchCommentPage } from "@/lib/comments";
+import { PersonalConflictBanner } from "@/components/events/personal-conflict-banner";
+import { personalBusyConflicts } from "@/lib/personal-conflicts";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -109,6 +113,30 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         where: { userId: me.id, role: "ADMIN", groupId: { in: [event.owningGroupId, ...event.coHosts.map((c) => c.groupId)] } },
       }))
     : false;
+
+  // Discussion thread — visible to anyone who can see the event. The page
+  // shows the latest page; the client pages backwards. We also load the
+  // viewer's read marker to render the "new since last visit" divider.
+  const [thread, threadRead] = me
+    ? await Promise.all([
+        fetchCommentPage(id, me.id, {}),
+        db.eventThreadRead.findUnique({
+          where: { userId_eventId: { userId: me.id, eventId: id } },
+          select: { lastReadAt: true },
+        }),
+      ])
+    : [{ comments: [], hasMore: false }, null];
+
+  // Personal-calendar clash — does this event overlap something the viewer
+  // already has on a subscribed Google/Apple calendar? (External-calendar import.)
+  const personalConflicts = me
+    ? (await personalBusyConflicts(me.id, event.startsAt, event.endsAt)).map((c) => ({
+        title: c.title,
+        startsAt: c.startsAt.toISOString(),
+        endsAt: c.endsAt.toISOString(),
+        calendarLabel: c.calendarLabel,
+      }))
+    : [];
 
   // §12.1 — resolve what location data to actually show this viewer.
   // Admins of the owning or co-hosting group always see the exact address;
@@ -238,6 +266,10 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         />
       )}
 
+      {me && personalConflicts.length > 0 && event.status !== "CANCELLED" && (
+        <PersonalConflictBanner conflicts={personalConflicts} />
+      )}
+
       {me && event.status !== "CANCELLED" && (
         <div>
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Your RSVP</h2>
@@ -263,6 +295,17 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             to RSVP.
           </p>
         </div>
+      )}
+
+      {me && (
+        <EventDiscussion
+          eventId={event.id}
+          currentUserId={me.id}
+          canModerate={isAdmin}
+          comments={thread.comments}
+          hasMore={thread.hasMore}
+          lastReadAt={threadRead?.lastReadAt.toISOString() ?? null}
+        />
       )}
 
       <SimilarEvents eventId={event.id} />

@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface Props {
-  kind: "avatar" | "flyer" | "evidence";
+  kind: "avatar" | "flyer" | "evidence" | "comment";
   onUploaded: (publicUrl: string) => void;
   multiple?: boolean;
   label?: string;

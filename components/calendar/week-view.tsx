@@ -56,6 +56,30 @@ export function WeekView({ events }: { events: CalEvent[] }) {
                 {dayEvents.map((e) => {
                   const fg = pickTextColor(e.color);
                   const cancelled = e.status === "CANCELLED";
+                  const outlined = e.isSoftClaim || e.isPersonal;
+                  const inner = (
+                    <>
+                      <div className="font-mono text-[10px] font-semibold tabular-nums opacity-90">
+                        {format(new Date(e.startsAt), "p")}
+                        {e.isPersonal && <span className="ml-1 font-sans uppercase tracking-wide opacity-80">busy</span>}
+                      </div>
+                      <div className={`mt-0.5 truncate font-medium ${cancelled ? "line-through opacity-80" : ""}`}>
+                        {e.title}
+                      </div>
+                    </>
+                  );
+                  if (outlined) {
+                    return (
+                      <div
+                        key={e.id + e.startsAt}
+                        className="block rounded-md border border-dashed px-2 py-1.5 text-xs leading-tight opacity-70"
+                        style={{ color: e.color, borderColor: e.color }}
+                        title={e.isPersonal ? `${e.title} — ${e.groupName} (your calendar)` : e.title}
+                      >
+                        {inner}
+                      </div>
+                    );
+                  }
                   return (
                     <Link
                       key={e.id + e.startsAt}
@@ -63,12 +87,7 @@ export function WeekView({ events }: { events: CalEvent[] }) {
                       className={`block rounded-md px-2 py-1.5 text-xs leading-tight transition-all duration-100 hover:-translate-y-px hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.30)] ${cancelled ? "cal-pill-cancelled" : ""}`}
                       style={{ backgroundColor: e.color, color: fg }}
                     >
-                      <div className="font-mono text-[10px] font-semibold tabular-nums opacity-90">
-                        {format(new Date(e.startsAt), "p")}
-                      </div>
-                      <div className={`mt-0.5 truncate font-medium ${cancelled ? "line-through opacity-80" : ""}`}>
-                        {e.title}
-                      </div>
+                      {inner}
                     </Link>
                   );
                 })}

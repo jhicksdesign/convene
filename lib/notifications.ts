@@ -51,6 +51,7 @@ function defaultsFor(category: NotificationCategory): { inApp: boolean; email: b
     "ADMIN_ACTION",
     "REPORT_STATUS",
     "WEEKLY_DIGEST",
+    "EVENT_MENTION",
   ];
   return { inApp: true, email: emailOn.includes(category) };
 }

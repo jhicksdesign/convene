@@ -62,6 +62,10 @@ model User {
   rateLimits         LLMRateLimit[]
   inviteList         EventInvite[]
   pushSubscriptions  PushSubscription[]
+  eventComments      EventComment[]
+  externalCalendars  ExternalCalendar[]
+  commentReactions   EventCommentReaction[]
+  threadReads        EventThreadRead[]
 }
 
 model PushSubscription {
@@ -239,9 +243,64 @@ model Event {
   carpoolOffers   CarpoolOffer[]
   carpoolRequests CarpoolRequest[]
   invites     EventInvite[]
+  comments    EventComment[]
+  threadReads EventThreadRead[]
 
   @@index([owningGroupId])
   @@index([startsAt])
+}
+
+// ─── Event discussion threads (TimeTree-style in-event chat) ─────────
+// A flat (non-nested) comment thread attached to an event. Visibility is
+// inherited from the event: anyone who passes canSeeEvent() may read/post.
+// Soft-deleted (deletedAt) rather than hard-deleted so a removed message
+// leaves a "message removed" tombstone instead of renumbering the thread.
+
+model EventComment {
+  id        String    @id @default(cuid())
+  eventId   String
+  userId    String
+  body      String
+  // Optional single image attachment (R2 public URL), TimeTree-style photo share.
+  imageUrl  String?
+  createdAt DateTime  @default(now())
+  editedAt  DateTime?
+  deletedAt DateTime?
+
+  event     Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions EventCommentReaction[]
+
+  @@index([eventId, createdAt])
+}
+
+// Emoji reactions on a comment. One row per (comment, user, emoji); the same
+// user can apply several distinct emoji but not the same one twice.
+model EventCommentReaction {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  comment EventComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, emoji])
+  @@index([commentId])
+}
+
+// Per-user read marker for an event's discussion thread. Powers the unread
+// "new since your last visit" divider and (future) unread badges.
+model EventThreadRead {
+  userId     String
+  eventId    String
+  lastReadAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([userId, eventId])
 }
 
 enum EventScope {
@@ -562,6 +621,8 @@ enum NotificationCategory {
   WEEKLY_DIGEST
   JOIN_REQUEST
   REPORT_FILED
+  EVENT_COMMENT
+  EVENT_MENTION
 }
 
 // ─── Attendance overlap (§9.4) ──────────────────────────────────────
@@ -615,6 +676,54 @@ model RateLimitBucket {
 model ChangeTick {
   channel   String   @id
   updatedAt DateTime @updatedAt
+}
+
+// ─── External calendar import (two-way: bring your real life in) ─────
+// A user subscribes their personal Google/Apple calendar by pasting its
+// private iCal (ICS) URL, or one-off uploads an .ics file. We pull the busy
+// blocks into ExternalCalendarEvent and feed them to personal-conflict
+// detection so Convene knows when an event clashes with the user's real life.
+// We deliberately store only title + time window — no attendees, no notes —
+// the minimum needed to detect a clash.
+
+model ExternalCalendar {
+  id           String    @id @default(cuid())
+  userId       String
+  label        String
+  // Private ICS subscription URL (Google "Secret address in iCal format",
+  // Apple public/shared calendar URL). Null for a one-off file import.
+  url          String?
+  source       String    @default("ICS_URL") // ICS_URL | FILE
+  // Hex color for the calendar's blocks on the in-app calendar overlay.
+  color        String    @default("#64748B")
+  // When false, the calendar is kept but excluded from the overlay and from
+  // personal-conflict warnings (a soft mute without losing the subscription).
+  enabled      Boolean   @default(true)
+  lastSyncedAt DateTime?
+  lastError    String?
+  createdAt    DateTime  @default(now())
+
+  user   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events ExternalCalendarEvent[]
+
+  @@index([userId])
+}
+
+model ExternalCalendarEvent {
+  id         String   @id @default(cuid())
+  calendarId String
+  // Stable key for de-dupe across re-syncs: the iCal UID plus the instance
+  // start (recurring series expand to one row per occurrence).
+  uid        String
+  title      String
+  startsAt   DateTime
+  endsAt     DateTime
+  createdAt  DateTime @default(now())
+
+  calendar ExternalCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, uid])
+  @@index([calendarId, startsAt])
 }
 
 // ─── Mapbox cache (§12.2) ───────────────────────────────────────────

@@ -15,6 +15,8 @@ const CATEGORIES = [
   ["EVENT_CANCELLED", "Event cancellations"],
   ["WAITLIST_PROMOTED", "Waitlist promotions"],
   ["CONDITIONAL_TRIGGERED", "Conditional RSVPs"],
+  ["EVENT_COMMENT", "Event discussion replies"],
+  ["EVENT_MENTION", "Mentions of you"],
   ["ADMIN_ACTION", "Admin actions against you"],
   ["REPORT_STATUS", "Report status updates"],
   ["WEEKLY_DIGEST", "Weekly digest"],

@@ -16,6 +16,9 @@ export interface CalEvent {
   color: string;
   status?: "TENTATIVE" | "CONFIRMED" | "CANCELLED";
   isSoftClaim?: boolean;
+  // A busy block imported from the viewer's external calendar — rendered as a
+  // muted, non-clickable overlay (no /e/ page behind it).
+  isPersonal?: boolean;
 }
 
 export function MonthView({ events, initialMonth }: { events: CalEvent[]; initialMonth?: string }) {
@@ -84,6 +87,7 @@ export function MonthView({ events, initialMonth }: { events: CalEvent[]; initia
               </div>
               <div className="mt-1 space-y-1">
                 {dayEvents.slice(0, 3).map((e) => {
+                  const outlined = e.isSoftClaim || e.isPersonal;
                   const start = e._start;
                   const isAllDay =
                     !e.isSoftClaim &&
@@ -101,22 +105,28 @@ export function MonthView({ events, initialMonth }: { events: CalEvent[]; initia
                       : `${h - 12}${ms}p`;
                   const fg = pickTextColor(e.color);
                   const cancelled = e.status === "CANCELLED";
+                  const label = e.isPersonal ? `${e.title} — ${e.groupName} (your calendar)` : `${e.title} — ${e.groupName}`;
                   return (
                     <Link
                       key={e.id + e.startsAt}
-                      href={e.isSoftClaim ? "#" : `/e/${e.id}`}
+                      href={outlined ? "#" : `/e/${e.id}`}
+                      aria-disabled={outlined || undefined}
+                      tabIndex={outlined ? -1 : undefined}
+                      onClick={outlined ? (ev) => ev.preventDefault() : undefined}
                       className={cn(
-                        "group/pill block h-6 overflow-hidden rounded-md text-[11px] leading-none transition-all duration-100 hover:-translate-y-px hover:shadow-[0_4px_10px_-3px_rgba(0,0,0,0.30)]",
-                        e.isSoftClaim && "border border-dashed opacity-70",
+                        "group/pill block h-6 overflow-hidden rounded-md text-[11px] leading-none transition-all duration-100",
+                        !outlined && "hover:-translate-y-px hover:shadow-[0_4px_10px_-3px_rgba(0,0,0,0.30)]",
+                        outlined && "border border-dashed opacity-70",
+                        e.isPersonal && "cursor-default",
                         cancelled && "cal-pill-cancelled",
                       )}
                       style={{
-                        backgroundColor: e.isSoftClaim ? "transparent" : e.color,
-                        color: e.isSoftClaim ? e.color : fg,
-                        borderColor: e.isSoftClaim ? e.color : undefined,
+                        backgroundColor: outlined ? "transparent" : e.color,
+                        color: outlined ? e.color : fg,
+                        borderColor: outlined ? e.color : undefined,
                       }}
-                      title={`${e.title} — ${e.groupName}`}
-                      aria-label={`${e.title}, ${e.groupName}${cancelled ? " (cancelled)" : ""}${timeLabel ? `, ${timeLabel}` : ""}`}
+                      title={label}
+                      aria-label={`${e.title}, ${e.isPersonal ? "your calendar" : e.groupName}${cancelled ? " (cancelled)" : ""}${timeLabel ? `, ${timeLabel}` : ""}`}
                     >
                       <span className="flex h-full items-center gap-1 px-1.5">
                         {timeLabel && (

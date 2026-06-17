@@ -51,15 +51,32 @@ export async function revokeICalToken() {
 /** §8.9 — export everything we hold about the user as JSON. */
 export async function exportUserData(): Promise<unknown> {
   const user = await requireUser();
-  const [profile, rsvps, notesAbout, reportsFiled, vouchesGiven, vouchesReceived] = await Promise.all([
-    db.user.findUnique({ where: { id: user.id } }),
-    db.rSVP.findMany({ where: { userId: user.id }, include: { event: { select: { title: true, startsAt: true } } } }),
-    db.adminNote.findMany({ where: { subjectUserId: user.id }, select: { body: true, groupId: true, createdAt: true } }),
-    db.incidentReport.findMany({ where: { reporterId: user.id } }),
-    db.vouch.findMany({ where: { voucherId: user.id } }),
-    db.vouch.findMany({ where: { voucheeId: user.id } }),
-  ]);
-  return { profile, rsvps, notesAbout, reportsFiled, vouchesGiven, vouchesReceived };
+  const [profile, rsvps, notesAbout, reportsFiled, vouchesGiven, vouchesReceived, comments, externalCalendars] =
+    await Promise.all([
+      db.user.findUnique({ where: { id: user.id } }),
+      db.rSVP.findMany({ where: { userId: user.id }, include: { event: { select: { title: true, startsAt: true } } } }),
+      db.adminNote.findMany({ where: { subjectUserId: user.id }, select: { body: true, groupId: true, createdAt: true } }),
+      db.incidentReport.findMany({ where: { reporterId: user.id } }),
+      db.vouch.findMany({ where: { voucherId: user.id } }),
+      db.vouch.findMany({ where: { voucheeId: user.id } }),
+      db.eventComment.findMany({
+        where: { userId: user.id, deletedAt: null },
+        select: { body: true, imageUrl: true, eventId: true, createdAt: true, editedAt: true },
+      }),
+      db.externalCalendar.findMany({
+        where: { userId: user.id },
+        select: {
+          label: true,
+          source: true,
+          url: true,
+          color: true,
+          enabled: true,
+          createdAt: true,
+          events: { select: { title: true, startsAt: true, endsAt: true } },
+        },
+      }),
+    ]);
+  return { profile, rsvps, notesAbout, reportsFiled, vouchesGiven, vouchesReceived, comments, externalCalendars };
 }
 
 /** §8.9 — soft-delete with 30-day grace; cron does the hard delete. */

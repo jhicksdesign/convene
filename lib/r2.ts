@@ -15,12 +15,13 @@ export const r2 = new S3Client({
   },
 });
 
-export type UploadKind = "avatar" | "flyer" | "evidence";
+export type UploadKind = "avatar" | "flyer" | "evidence" | "comment";
 
 const limits: Record<UploadKind, { maxBytes: number; mimes: string[] }> = {
   avatar:   { maxBytes: 5 * 1024 * 1024,  mimes: ["image/png", "image/jpeg", "image/webp"] },
   flyer:    { maxBytes: 10 * 1024 * 1024, mimes: ["image/png", "image/jpeg", "image/webp", "image/gif"] },
   evidence: { maxBytes: 10 * 1024 * 1024, mimes: ["image/png", "image/jpeg", "image/webp", "application/pdf", "video/mp4"] },
+  comment:  { maxBytes: 10 * 1024 * 1024, mimes: ["image/png", "image/jpeg", "image/webp", "image/gif"] },
 };
 
 export async function signedUploadUrl(
